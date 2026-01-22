@@ -19,6 +19,10 @@
                     <span class="nav-icon">⚙️</span>
                     <span class="nav-label">Config</span>
                 </a>
+                <a href="#/module-overview" class="nav-item" data-route="/module-overview">
+                    <span class="nav-icon">🔲</span>
+                    <span class="nav-label">Module Overview</span>
+                </a>
                 <a href="#/diagnostics" class="nav-item" data-route="/diagnostics">
                     <span class="nav-icon">🔍</span>
                     <span class="nav-label">Diagnostics</span>
@@ -71,6 +75,27 @@
                         <div class="form-group">
                             <label>Port:</label>
                             <input type="text" value="502" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Module Overview View -->
+            <div id="view-module-overview" class="view">
+                <div class="view-header">
+                    <h2>Module Overview</h2>
+                    <p>System modules and status monitoring</p>
+                </div>
+                <div class="module-overview-container">
+                    <!-- Module Grid -->
+                    <div class="module-grid" id="module-grid">
+                        <!-- Modules will be dynamically inserted here -->
+                    </div>
+                    <!-- Module Detail Panel -->
+                    <div class="module-detail-panel" id="module-detail-panel">
+                        <div class="detail-placeholder">
+                            <p>🔲</p>
+                            <p>Select a module to view its status details</p>
                         </div>
                     </div>
                 </div>
