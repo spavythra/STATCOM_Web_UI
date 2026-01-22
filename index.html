@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STATCOM Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>STATCOM</h1>
+                <p>Control Panel</p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#/config" class="nav-item" data-route="/config">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-label">Config</span>
+                </a>
+                <a href="#/diagnostics" class="nav-item" data-route="/diagnostics">
+                    <span class="nav-icon">🔍</span>
+                    <span class="nav-label">Diagnostics</span>
+                </a>
+                <a href="#/trends" class="nav-item" data-route="/trends">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-label">Trends</span>
+                </a>
+                <a href="#/alarms" class="nav-item" data-route="/alarms">
+                    <span class="nav-icon">🔔</span>
+                    <span class="nav-label">Alarms</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Config View -->
+            <div id="view-config" class="view">
+                <div class="view-header">
+                    <h2>Configuration</h2>
+                    <p>System configuration and settings</p>
+                </div>
+                <div class="view-content">
+                    <div class="card">
+                        <h3>General Settings</h3>
+                        <div class="form-group">
+                            <label>System Name:</label>
+                            <input type="text" value="STATCOM-001" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Operating Mode:</label>
+                            <select>
+                                <option>Automatic</option>
+                                <option>Manual</option>
+                                <option>Standby</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Voltage Level:</label>
+                            <input type="text" value="11 kV" readonly>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Network Parameters</h3>
+                        <div class="form-group">
+                            <label>IP Address:</label>
+                            <input type="text" value="192.168.1.100" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Port:</label>
+                            <input type="text" value="502" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diagnostics View -->
+            <div id="view-diagnostics" class="view">
+                <div class="view-header">
+                    <h2>Diagnostics</h2>
+                    <p>System diagnostics and health monitoring</p>
+                </div>
+                <div class="view-content">
+                    <div class="card">
+                        <h3>System Status</h3>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <span class="status-label">CPU Usage:</span>
+                                <span class="status-value">45%</span>
+                                <div class="status-indicator status-ok"></div>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Memory:</span>
+                                <span class="status-value">2.1 GB / 4 GB</span>
+                                <div class="status-indicator status-ok"></div>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Temperature:</span>
+                                <span class="status-value">42°C</span>
+                                <div class="status-indicator status-ok"></div>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Communication:</span>
+                                <span class="status-value">Online</span>
+                                <div class="status-indicator status-ok"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Recent Events</h3>
+                        <div class="event-log">
+                            <div class="event-item">
+                                <span class="event-time">08:25:12</span>
+                                <span class="event-message">System check completed successfully</span>
+                            </div>
+                            <div class="event-item">
+                                <span class="event-time">08:15:05</span>
+                                <span class="event-message">Configuration updated</span>
+                            </div>
+                            <div class="event-item">
+                                <span class="event-time">08:00:00</span>
+                                <span class="event-message">System startup</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trends View -->
+            <div id="view-trends" class="view">
+                <div class="view-header">
+                    <h2>Trends</h2>
+                    <p>Historical data and trend analysis</p>
+                </div>
+                <div class="view-content">
+                    <div class="card">
+                        <h3>Voltage Trends</h3>
+                        <div class="trend-chart">
+                            <div class="chart-placeholder">
+                                <p>📊 Voltage trend chart</p>
+                                <p class="chart-note">Real-time data visualization</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Current Trends</h3>
+                        <div class="trend-chart">
+                            <div class="chart-placeholder">
+                                <p>📊 Current trend chart</p>
+                                <p class="chart-note">Real-time data visualization</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Power Factor</h3>
+                        <div class="trend-chart">
+                            <div class="chart-placeholder">
+                                <p>📊 Power factor trend chart</p>
+                                <p class="chart-note">Real-time data visualization</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alarms View -->
+            <div id="view-alarms" class="view">
+                <div class="view-header">
+                    <h2>Alarms</h2>
+                    <p>Active and historical alarms</p>
+                </div>
+                <div class="view-content">
+                    <div class="card">
+                        <h3>Active Alarms</h3>
+                        <div class="alarm-list">
+                            <div class="alarm-item alarm-info">
+                                <span class="alarm-severity">ℹ️ INFO</span>
+                                <span class="alarm-time">08:30:00</span>
+                                <span class="alarm-message">System operating normally</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Alarm History</h3>
+                        <div class="alarm-list">
+                            <div class="alarm-item alarm-warning">
+                                <span class="alarm-severity">⚠️ WARNING</span>
+                                <span class="alarm-time">07:45:23</span>
+                                <span class="alarm-message">Temperature approaching threshold - Cleared</span>
+                            </div>
+                            <div class="alarm-item alarm-info">
+                                <span class="alarm-severity">ℹ️ INFO</span>
+                                <span class="alarm-time">07:30:15</span>
+                                <span class="alarm-message">Routine maintenance completed</span>
+                            </div>
+                            <div class="alarm-item alarm-info">
+                                <span class="alarm-severity">ℹ️ INFO</span>
+                                <span class="alarm-time">06:00:00</span>
+                                <span class="alarm-message">Daily system check initiated</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
