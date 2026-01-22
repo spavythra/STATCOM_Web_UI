@@ -56,12 +56,19 @@
      */
     function navigateToRoute(route) {
         // Check if route exists
-        const viewId = routes[route];
+        let viewId = routes[route];
         
         if (!viewId) {
-            // If route doesn't exist, redirect to default
-            route = defaultRoute;
-            window.location.hash = '#' + route;
+            // If route doesn't exist, redirect to default (with safety check)
+            if (routes[defaultRoute]) {
+                window.location.hash = '#' + defaultRoute;
+            } else {
+                // Fallback: show first available route
+                const firstRoute = Object.keys(routes)[0];
+                if (firstRoute) {
+                    window.location.hash = '#' + firstRoute;
+                }
+            }
             return;
         }
         
