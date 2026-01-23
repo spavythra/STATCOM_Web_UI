@@ -1224,20 +1224,38 @@
         const alarmsView = document.getElementById('view-alarms');
         if (!alarmsView) return;
 
-        // Check if alarms view is currently active
-        if (alarmsView.classList.contains('active')) {
-            if (alarmsData.active.length === 0 && alarmsData.cleared.length === 0) {
-                initAlarms();
+        // Function to try initialization
+        function tryInit() {
+            // Check if module data is available
+            if (!window.STATCOM || !window.STATCOM.getModuleData) {
+                // Wait for module data to be available
+                setTimeout(tryInit, 100);
+                return;
+            }
+
+            const moduleData = window.STATCOM.getModuleData();
+            if (!moduleData || Object.keys(moduleData).length === 0) {
+                // Wait for module data to be populated
+                setTimeout(tryInit, 100);
+                return;
+            }
+
+            // Initialize alarms if view is active and alarms haven't been generated yet
+            if (alarmsView.classList.contains('active')) {
+                if (alarmsData.active.length === 0 && alarmsData.cleared.length === 0) {
+                    initAlarms();
+                }
             }
         }
+
+        // Check if alarms view is currently active
+        tryInit();
 
         // Set up observer for future navigation to alarms
         const observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 if (alarmsView.classList.contains('active')) {
-                    if (alarmsData.active.length === 0 && alarmsData.cleared.length === 0) {
-                        initAlarms();
-                    }
+                    tryInit();
                 }
             });
         });
