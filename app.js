@@ -1023,6 +1023,7 @@
     // Constants
     const NOTIFICATION_DURATION_MS = 3000;
     const NOTIFICATION_FADEOUT_MS = 300;
+    const MAX_DISPLAYED_CLEARED_ALARMS = 15;
 
     let alarmsData = { active: [], cleared: [] };
     let filteredAlarmsData = { active: [], cleared: [] };
@@ -1236,7 +1237,7 @@
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         
-        const timestamp = new Date().toISOString().replace(/[T:.]/g, '-').slice(0, -5);
+        const timestamp = new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').slice(0, -5);
         const filename = `STATCOM_Alarms_${timestamp}.csv`;
         
         link.setAttribute('href', url);
@@ -1289,7 +1290,7 @@
             notification.style.animation = 'slideOut 0.3s ease-out';
             setTimeout(() => {
                 if (document.body.contains(notification)) {
-                    document.body.removeChild(notification);
+                    notification.remove();
                 }
             }, NOTIFICATION_FADEOUT_MS);
         }, NOTIFICATION_DURATION_MS);
@@ -1331,9 +1332,9 @@
                         activatedAt: new Date(now.getTime() - Math.random() * 6 * 60 * 60 * 1000) // Random time in last 6 hours for active
                     };
 
-                    // Randomly decide if alarm is active or cleared (40% cleared, 60% active)
+                    // Randomly decide if alarm is cleared (40% probability when random > 0.6)
                     if (Math.random() > 0.6) {
-                        // Cleared alarm
+                        // Cleared alarm (40% of alarms)
                         const activationTime = alarm.activatedAt.getTime();
                         const clearTime = activationTime + Math.random() * 4 * 60 * 60 * 1000; // Cleared within 4 hours
                         
@@ -1345,7 +1346,7 @@
                             activeAlarms.push(alarm);
                         }
                     } else {
-                        // Active alarm
+                        // Active alarm (60% of alarms)
                         activeAlarms.push(alarm);
                     }
                 }
@@ -1509,8 +1510,8 @@
             return;
         }
 
-        // Limit to 15 most recent cleared alarms
-        const displayedAlarms = filteredAlarmsData.cleared.slice(0, 15);
+        // Limit to most recent cleared alarms
+        const displayedAlarms = filteredAlarmsData.cleared.slice(0, MAX_DISPLAYED_CLEARED_ALARMS);
 
         // Render each alarm
         displayedAlarms.forEach(alarm => {
@@ -1536,10 +1537,10 @@
         });
 
         // Show message if more alarms exist
-        if (filteredAlarmsData.cleared.length > 15) {
+        if (filteredAlarmsData.cleared.length > MAX_DISPLAYED_CLEARED_ALARMS) {
             const moreMessage = document.createElement('div');
             moreMessage.className = 'no-alarms-message';
-            moreMessage.textContent = `Showing 15 of ${filteredAlarmsData.cleared.length} cleared alarms`;
+            moreMessage.textContent = `Showing ${MAX_DISPLAYED_CLEARED_ALARMS} of ${filteredAlarmsData.cleared.length} cleared alarms`;
             container.appendChild(moreMessage);
         }
     }
