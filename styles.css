@@ -472,15 +472,6 @@ body {
 }
 
 @media (max-width: 768px) {
-    .sidebar {
-        width: 200px;
-    }
-
-    .main-content {
-        margin-left: 200px;
-        padding: 20px;
-    }
-
     .sidebar-header {
         padding: 20px 15px;
     }
