@@ -1015,22 +1015,277 @@
 
 /**
  * Alarms Page Implementation
- * Display active and cleared alarms from module status data
+ * Display active and cleared alarms with filtering and CSV export
  */
 (function() {
     'use strict';
 
     let alarmsData = { active: [], cleared: [] };
+    let filteredAlarmsData = { active: [], cleared: [] };
+    let currentFilters = {
+        severity: 'ALL',
+        timeRange: '24h',
+        module: 'ALL'
+    };
+
+    // Alarm message templates based on status type
+    const ALARM_MESSAGES = {
+        'Overtemp': 'Overtemp threshold exceeded',
+        'Comm Lost': 'Communication timeout',
+        'Voltage Level': 'Voltage out of range',
+        'Fan Fail': 'Fan failure detected',
+        'Power Supply Error': 'Power supply error',
+        'Vdc Fault': 'DC voltage fault',
+        'Current Level': 'Current level abnormal',
+        'Thermal Status': 'Thermal status warning',
+        'Gating OK': 'Gating signal error',
+        'Sync Fault': 'Synchronization fault',
+        'Interlock': 'Interlock triggered',
+        'Self Test': 'Self test failure'
+    };
 
     /**
      * Initialize Alarms page
      */
     function initAlarms() {
+        // Populate module filter dropdown
+        populateModuleFilter();
+
         // Generate alarm data from module statuses
         alarmsData = generateAlarmsFromModuleData();
+        
+        // Apply initial filters
+        applyFilters();
+
+        // Set up event listeners
+        setupEventListeners();
 
         // Render alarms
         renderAlarms();
+    }
+
+    /**
+     * Populate module filter dropdown
+     */
+    function populateModuleFilter() {
+        const moduleFilter = document.getElementById('module-filter');
+        if (!moduleFilter) return;
+
+        // Keep "All Modules" option
+        moduleFilter.innerHTML = '<option value="ALL">All Modules</option>';
+
+        // Add individual modules
+        for (let i = 1; i <= 64; i++) {
+            const moduleId = `M${String(i).padStart(3, '0')}`;
+            const option = document.createElement('option');
+            option.value = moduleId;
+            option.textContent = moduleId;
+            moduleFilter.appendChild(option);
+        }
+    }
+
+    /**
+     * Set up event listeners
+     */
+    function setupEventListeners() {
+        // Apply filters button
+        const applyBtn = document.getElementById('apply-filters-btn');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', function() {
+                currentFilters.severity = document.getElementById('severity-filter').value;
+                currentFilters.timeRange = document.getElementById('time-range-filter').value;
+                currentFilters.module = document.getElementById('module-filter').value;
+                applyFilters();
+                renderAlarms();
+            });
+        }
+
+        // Clear filters button
+        const clearBtn = document.getElementById('clear-filters-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                // Reset filter values
+                document.getElementById('severity-filter').value = 'ALL';
+                document.getElementById('time-range-filter').value = '24h';
+                document.getElementById('module-filter').value = 'ALL';
+                
+                // Reset current filters
+                currentFilters = {
+                    severity: 'ALL',
+                    timeRange: '24h',
+                    module: 'ALL'
+                };
+                
+                applyFilters();
+                renderAlarms();
+            });
+        }
+
+        // Export CSV button
+        const exportBtn = document.getElementById('export-csv-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', exportToCSV);
+        }
+    }
+
+    /**
+     * Apply current filters to alarm data
+     */
+    function applyFilters() {
+        const now = new Date();
+        
+        // Calculate time range cutoff
+        let timeCutoff = null;
+        if (currentFilters.timeRange !== 'all') {
+            const hours = {
+                '1h': 1,
+                '6h': 6,
+                '24h': 24,
+                '7d': 168
+            };
+            const hoursAgo = hours[currentFilters.timeRange] || 24;
+            timeCutoff = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+        }
+
+        // Filter active alarms
+        filteredAlarmsData.active = alarmsData.active.filter(alarm => {
+            // Severity filter
+            if (currentFilters.severity !== 'ALL' && alarm.severity !== currentFilters.severity) {
+                return false;
+            }
+            
+            // Module filter
+            if (currentFilters.module !== 'ALL' && alarm.moduleId !== currentFilters.module) {
+                return false;
+            }
+            
+            // Time range filter
+            if (timeCutoff && alarm.activatedAt < timeCutoff) {
+                return false;
+            }
+            
+            return true;
+        });
+
+        // Filter cleared alarms
+        filteredAlarmsData.cleared = alarmsData.cleared.filter(alarm => {
+            // Severity filter
+            if (currentFilters.severity !== 'ALL' && alarm.severity !== currentFilters.severity) {
+                return false;
+            }
+            
+            // Module filter
+            if (currentFilters.module !== 'ALL' && alarm.moduleId !== currentFilters.module) {
+                return false;
+            }
+            
+            // Time range filter (based on cleared time)
+            if (timeCutoff && alarm.clearedAt < timeCutoff) {
+                return false;
+            }
+            
+            return true;
+        });
+    }
+
+    /**
+     * Export alarms to CSV
+     */
+    function exportToCSV() {
+        // Combine active and cleared alarms
+        const allAlarms = [
+            ...filteredAlarmsData.active.map(a => ({ ...a, status: 'Active', clearedAt: null })),
+            ...filteredAlarmsData.cleared.map(a => ({ ...a, status: 'Cleared' }))
+        ];
+
+        if (allAlarms.length === 0) {
+            alert('No alarms to export with current filters');
+            return;
+        }
+
+        // CSV header
+        let csv = 'Severity,Module,Status,Triggered Time,Cleared Time,Duration,Message\n';
+
+        // CSV rows
+        allAlarms.forEach(alarm => {
+            const severity = escapeCSV(alarm.severity);
+            const module = escapeCSV(alarm.moduleId);
+            const status = escapeCSV(alarm.status);
+            const triggeredTime = escapeCSV(formatTimestamp(alarm.activatedAt));
+            const clearedTime = alarm.clearedAt ? escapeCSV(formatTimestamp(alarm.clearedAt)) : '';
+            const duration = alarm.duration ? escapeCSV(alarm.duration) : (alarm.status === 'Active' ? escapeCSV(getActiveDuration(alarm.activatedAt)) : '');
+            const message = escapeCSV(getAlarmMessage(alarm.type));
+
+            csv += `${severity},${module},${status},${triggeredTime},${clearedTime},${duration},${message}\n`;
+        });
+
+        // Create and download file
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const filename = `STATCOM_Alarms_${timestamp}.csv`;
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        // Show success notification
+        showNotification('CSV exported successfully!');
+    }
+
+    /**
+     * Escape CSV field
+     */
+    function escapeCSV(field) {
+        if (field === null || field === undefined) return '';
+        const str = String(field);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    }
+
+    /**
+     * Show notification message
+     */
+    function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4a9eff;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            font-size: 14px;
+            font-weight: 600;
+            animation: slideIn 0.3s ease-out;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
+    }
+
+    /**
+     * Get alarm message based on status type
+     */
+    function getAlarmMessage(statusType) {
+        return ALARM_MESSAGES[statusType] || statusType;
     }
 
     /**
@@ -1059,14 +1314,14 @@
                         moduleId: moduleId,
                         type: statusType,
                         severity: statusValue,
-                        activatedAt: new Date(now.getTime() - Math.random() * 24 * 60 * 60 * 1000) // Random time in last 24 hours
+                        activatedAt: new Date(now.getTime() - Math.random() * 6 * 60 * 60 * 1000) // Random time in last 6 hours for active
                     };
 
-                    // Randomly decide if alarm is active or cleared (60% cleared, 40% active)
-                    if (Math.random() > 0.4) {
+                    // Randomly decide if alarm is active or cleared (40% cleared, 60% active)
+                    if (Math.random() > 0.6) {
                         // Cleared alarm
                         const activationTime = alarm.activatedAt.getTime();
-                        const clearTime = activationTime + Math.random() * 12 * 60 * 60 * 1000; // Cleared within 12 hours
+                        const clearTime = activationTime + Math.random() * 4 * 60 * 60 * 1000; // Cleared within 4 hours
                         
                         if (clearTime < now.getTime()) {
                             alarm.clearedAt = new Date(clearTime);
@@ -1081,6 +1336,36 @@
                     }
                 }
             });
+        }
+
+        // Generate additional cleared alarms spanning 7 days for testing filters
+        // Generate 20-30 additional cleared alarms
+        const additionalClearedCount = 20 + Math.floor(Math.random() * 11); // 20-30
+        const statusTypes = Object.keys(ALARM_MESSAGES);
+        const severities = ['CRITICAL', 'WARNING', 'DEGRADED'];
+        
+        for (let i = 0; i < additionalClearedCount; i++) {
+            const moduleNum = Math.floor(Math.random() * 64) + 1;
+            const moduleId = `M${String(moduleNum).padStart(3, '0')}`;
+            const statusType = statusTypes[Math.floor(Math.random() * statusTypes.length)];
+            const severity = severities[Math.floor(Math.random() * severities.length)];
+            
+            // Random time within last 7 days
+            const activatedAt = new Date(now.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000);
+            const clearedAt = new Date(activatedAt.getTime() + Math.random() * 12 * 60 * 60 * 1000);
+            
+            // Only add if cleared time is in the past
+            if (clearedAt < now) {
+                const alarm = {
+                    moduleId: moduleId,
+                    type: statusType,
+                    severity: severity,
+                    activatedAt: activatedAt,
+                    clearedAt: clearedAt,
+                    duration: formatDuration(clearedAt.getTime() - activatedAt.getTime())
+                };
+                clearedAlarms.push(alarm);
+            }
         }
 
         // Sort active alarms by severity (CRITICAL > WARNING > DEGRADED) then by time
@@ -1110,6 +1395,15 @@
         if (hours > 0) return `${hours}h ${minutes % 60}m`;
         if (minutes > 0) return `${minutes}m`;
         return `${seconds}s`;
+    }
+
+    /**
+     * Get active duration for an active alarm
+     */
+    function getActiveDuration(activatedAt) {
+        const now = new Date();
+        const duration = now.getTime() - activatedAt.getTime();
+        return 'Active for ' + formatDuration(duration);
     }
 
     /**
@@ -1144,30 +1438,34 @@
 
         // Update count
         if (countElement) {
-            countElement.textContent = alarmsData.active.length;
+            countElement.textContent = filteredAlarmsData.active.length;
         }
 
         // Clear container
         container.innerHTML = '';
 
-        if (alarmsData.active.length === 0) {
-            container.innerHTML = '<div class="no-alarms-message">No active alarms</div>';
+        if (filteredAlarmsData.active.length === 0) {
+            container.innerHTML = '<div class="no-alarms-message">No active alarms matching filters</div>';
             return;
         }
 
         // Render each alarm
-        alarmsData.active.forEach(alarm => {
+        filteredAlarmsData.active.forEach(alarm => {
             const alarmRow = document.createElement('div');
             alarmRow.className = `alarm-row severity-${alarm.severity.toLowerCase()}`;
 
+            const alarmMessage = getAlarmMessage(alarm.type);
+            const activeDuration = getActiveDuration(alarm.activatedAt);
+
             alarmRow.innerHTML = `
-                <div class="alarm-severity-badge ${alarm.severity.toLowerCase()}">${alarm.severity}</div>
+                <div class="alarm-severity-badge ${alarm.severity.toLowerCase()}">${alarm.severity === 'CRITICAL' ? '🔴' : alarm.severity === 'WARNING' ? '⚠️' : 'ℹ️'} ${alarm.severity}</div>
                 <div class="alarm-info">
                     <div class="alarm-module">${alarm.moduleId}</div>
-                    <div class="alarm-type">${alarm.type}</div>
+                    <div class="alarm-type">${alarmMessage}</div>
                 </div>
                 <div class="alarm-timestamps">
                     <div class="alarm-timestamp active-time">${formatTimestamp(alarm.activatedAt)}</div>
+                    <div class="alarm-duration">${activeDuration}</div>
                 </div>
             `;
 
@@ -1186,30 +1484,35 @@
 
         // Update count
         if (countElement) {
-            countElement.textContent = alarmsData.cleared.length;
+            countElement.textContent = filteredAlarmsData.cleared.length;
         }
 
         // Clear container
         container.innerHTML = '';
 
-        if (alarmsData.cleared.length === 0) {
-            container.innerHTML = '<div class="no-alarms-message">No cleared alarms</div>';
+        if (filteredAlarmsData.cleared.length === 0) {
+            container.innerHTML = '<div class="no-alarms-message">No cleared alarms matching filters</div>';
             return;
         }
 
+        // Limit to 15 most recent cleared alarms
+        const displayedAlarms = filteredAlarmsData.cleared.slice(0, 15);
+
         // Render each alarm
-        alarmsData.cleared.forEach(alarm => {
+        displayedAlarms.forEach(alarm => {
             const alarmRow = document.createElement('div');
             alarmRow.className = `alarm-row severity-${alarm.severity.toLowerCase()}`;
 
+            const alarmMessage = getAlarmMessage(alarm.type);
+
             alarmRow.innerHTML = `
-                <div class="alarm-severity-badge ${alarm.severity.toLowerCase()}">${alarm.severity}</div>
+                <div class="alarm-severity-badge ${alarm.severity.toLowerCase()}">${alarm.severity === 'CRITICAL' ? '🔴' : alarm.severity === 'WARNING' ? '⚠️' : 'ℹ️'} ${alarm.severity}</div>
                 <div class="alarm-info">
                     <div class="alarm-module">${alarm.moduleId}</div>
-                    <div class="alarm-type">${alarm.type}</div>
+                    <div class="alarm-type">${alarmMessage} - Cleared</div>
                 </div>
                 <div class="alarm-timestamps">
-                    <div class="alarm-timestamp">Activated: ${formatTimestamp(alarm.activatedAt)}</div>
+                    <div class="alarm-timestamp">Triggered: ${formatTimestamp(alarm.activatedAt)}</div>
                     <div class="alarm-timestamp">Cleared: ${formatTimestamp(alarm.clearedAt)}</div>
                     <div class="alarm-duration">Duration: ${alarm.duration}</div>
                 </div>
@@ -1217,6 +1520,14 @@
 
             container.appendChild(alarmRow);
         });
+
+        // Show message if more alarms exist
+        if (filteredAlarmsData.cleared.length > 15) {
+            const moreMessage = document.createElement('div');
+            moreMessage.className = 'no-alarms-message';
+            moreMessage.textContent = `Showing 15 of ${filteredAlarmsData.cleared.length} cleared alarms`;
+            container.appendChild(moreMessage);
+        }
     }
 
     // Initialize when DOM is ready and when navigating to alarms page
