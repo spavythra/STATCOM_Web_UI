@@ -1155,13 +1155,15 @@
             return;
         }
 
+        // Get current time once for all alarms
+        const now = new Date();
+
         // Render each alarm
         alarmsData.active.forEach(alarm => {
             const alarmRow = document.createElement('div');
             alarmRow.className = `alarm-row severity-${alarm.severity.toLowerCase()}`;
             
             // Calculate active duration
-            const now = new Date();
             const activeDuration = formatDuration(now - alarm.activatedAt);
 
             alarmRow.innerHTML = `
