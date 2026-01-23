@@ -282,12 +282,33 @@
 
     /**
      * Calculate aggregate/overall module status based on worst individual status
-     * Priority: CRITICAL > WARNING > DEGRADED > OK
+     * 
+     * This function ensures data consistency between module tile colors and their detail panel statuses.
+     * The tile color MUST accurately reflect the worst status among all 12 status indicators.
+     * 
+     * Priority hierarchy (worst to best):
+     *   CRITICAL (priority 4, red)    - Most severe, requires immediate attention
+     *   WARNING  (priority 3, orange) - Attention needed
+     *   DEGRADED (priority 2, yellow) - Performance degraded but operational
+     *   OK       (priority 1, green)  - Normal operation
+     * 
+     * Algorithm:
+     *   1. Start with OK status (lowest priority)
+     *   2. Iterate through all 12 status indicators
+     *   3. Track the status with highest priority number
+     *   4. Return the worst status found
+     * 
+     * This ensures the module tile color always reflects the worst-case scenario,
+     * maintaining consistency with the detail panel display.
+     * 
+     * @param {Object} moduleStatuses - Object containing all 12 status types and their values
+     * @returns {string} The worst status value ('OK', 'DEGRADED', 'WARNING', or 'CRITICAL')
      */
     function getAggregateModuleStatus(moduleStatuses) {
         let worstStatus = 'OK';
         let highestPriority = 0;
         
+        // Iterate through all status indicators to find the worst one
         Object.values(moduleStatuses).forEach(status => {
             const statusPriority = STATUS_VALUES[status].priority;
             if (statusPriority > highestPriority) {
@@ -297,6 +318,59 @@
         });
         
         return worstStatus;
+    }
+
+    /**
+     * Validate module data consistency
+     * 
+     * Checks that each module's tile color correctly reflects its worst status indicator.
+     * Logs warnings to console if any inconsistencies are detected.
+     * 
+     * @param {Object} moduleData - The complete module data object
+     * @returns {Array} Array of inconsistency reports (empty if all consistent)
+     */
+    function validateModuleConsistency(moduleData) {
+        const inconsistencies = [];
+        
+        modules.forEach(module => {
+            const moduleStatuses = moduleData[module.id];
+            const calculatedStatus = getAggregateModuleStatus(moduleStatuses);
+            
+            // Count statuses by type for detailed reporting
+            const statusCounts = { OK: 0, DEGRADED: 0, WARNING: 0, CRITICAL: 0 };
+            Object.entries(moduleStatuses).forEach(([statusType, status]) => {
+                statusCounts[status]++;
+            });
+            
+            // Verify that the calculated aggregate matches what would be displayed
+            const tile = document.querySelector(`[data-module-id="${module.id}"]`);
+            if (tile) {
+                let displayedStatus = 'OK';
+                if (tile.classList.contains('status-critical')) displayedStatus = 'CRITICAL';
+                else if (tile.classList.contains('status-warning')) displayedStatus = 'WARNING';
+                else if (tile.classList.contains('status-degraded')) displayedStatus = 'DEGRADED';
+                
+                if (displayedStatus !== calculatedStatus) {
+                    const issue = {
+                        moduleId: module.id,
+                        expected: calculatedStatus,
+                        displayed: displayedStatus,
+                        statusCounts: statusCounts,
+                        message: `Module ${module.id}: Tile shows ${displayedStatus} but should show ${calculatedStatus}`
+                    };
+                    inconsistencies.push(issue);
+                    console.warn('⚠️ Data Inconsistency Detected:', issue);
+                }
+            }
+        });
+        
+        if (inconsistencies.length === 0) {
+            console.log('✅ All modules validated: No data inconsistencies detected');
+        } else {
+            console.error(`❌ Found ${inconsistencies.length} data inconsistencies`);
+        }
+        
+        return inconsistencies;
     }
 
     // ============================================================================
@@ -328,6 +402,13 @@
         if (moduleGrid) {
             moduleGrid.addEventListener('click', handleModuleClick);
         }
+        
+        // Validate data consistency after initial render
+        // Use setTimeout to ensure DOM is fully rendered
+        setTimeout(() => {
+            console.log('🔍 Running module data consistency validation...');
+            validateModuleConsistency(moduleData);
+        }, 100);
     }
 
     // ============================================================================
@@ -506,5 +587,35 @@
     } else {
         initModuleOverview();
     }
+    
+    // ============================================================================
+    // GLOBAL API - Expose validation for testing and debugging
+    // ============================================================================
+    
+    // Make validation and inspection functions available globally for manual testing
+    window.STATCOM = window.STATCOM || {};
+    window.STATCOM.validateModules = function() {
+        console.log('🔍 Running manual module validation...');
+        return validateModuleConsistency(moduleData);
+    };
+    window.STATCOM.getModuleData = function(moduleId) {
+        if (moduleId) {
+            return moduleData[moduleId];
+        }
+        return moduleData;
+    };
+    window.STATCOM.getModuleStatus = function(moduleId) {
+        if (!moduleData[moduleId]) {
+            console.error(`Module ${moduleId} not found`);
+            return null;
+        }
+        const statuses = moduleData[moduleId];
+        const aggregate = getAggregateModuleStatus(statuses);
+        return {
+            moduleId: moduleId,
+            aggregateStatus: aggregate,
+            individualStatuses: statuses
+        };
+    };
 
 })();
