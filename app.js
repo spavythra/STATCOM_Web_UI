@@ -1217,7 +1217,15 @@
             const status = escapeCSV(alarm.status);
             const triggeredTime = escapeCSV(formatTimestamp(alarm.activatedAt));
             const clearedTime = alarm.clearedAt ? escapeCSV(formatTimestamp(alarm.clearedAt)) : '';
-            const duration = alarm.duration ? escapeCSV(alarm.duration) : (alarm.status === 'Active' ? escapeCSV(getActiveDuration(alarm.activatedAt)) : '');
+            
+            // Calculate duration for CSV export
+            let duration = '';
+            if (alarm.duration) {
+                duration = escapeCSV(alarm.duration);
+            } else if (alarm.status === 'Active') {
+                duration = escapeCSV(getActiveDuration(alarm.activatedAt));
+            }
+            
             const message = escapeCSV(getAlarmMessage(alarm.type));
 
             csv += `${severity},${module},${status},${triggeredTime},${clearedTime},${duration},${message}\n`;
@@ -1228,7 +1236,7 @@
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const timestamp = new Date().toISOString().replace(/[T:.]/g, '-').slice(0, -5);
         const filename = `STATCOM_Alarms_${timestamp}.csv`;
         
         link.setAttribute('href', url);
@@ -1280,7 +1288,9 @@
         setTimeout(() => {
             notification.style.animation = 'slideOut 0.3s ease-out';
             setTimeout(() => {
-                document.body.removeChild(notification);
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
             }, NOTIFICATION_FADEOUT_MS);
         }, NOTIFICATION_DURATION_MS);
     }
