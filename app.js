@@ -626,3 +626,647 @@
     };
 
 })();
+
+/**
+ * Trends Page Implementation
+ * Interactive Chart.js visualizations for module data over time
+ */
+(function() {
+    'use strict';
+
+    // Chart instances
+    let voltageChart = null;
+    let currentChart = null;
+    let temperatureChart = null;
+    let powerFactorChart = null;
+
+    // Current state
+    let selectedModuleId = null;
+    let currentTimeRange = '1h'; // '1h' or '24h'
+
+    /**
+     * Initialize Trends page
+     */
+    function initTrends() {
+        // Populate module selector
+        populateModuleSelector();
+
+        // Set up event listeners
+        setupEventListeners();
+
+        // Initialize charts with default module (first module with issues)
+        const defaultModule = getDefaultModule();
+        if (defaultModule) {
+            selectedModuleId = defaultModule;
+            document.getElementById('module-selector').value = defaultModule;
+            initializeCharts();
+        }
+    }
+
+    /**
+     * Show error message when Chart.js fails to load
+     */
+    function showChartLoadError() {
+        const chartWrappers = document.querySelectorAll('.chart-wrapper');
+        chartWrappers.forEach(wrapper => {
+            wrapper.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #888; text-align: center; padding: 20px;">Chart.js library failed to load. Please check your internet connection.</div>';
+        });
+    }
+
+    /**
+     * Get default module to display (first module with issues, or M001)
+     */
+    function getDefaultModule() {
+        // Get module data from the global STATCOM object
+        const moduleData = window.STATCOM && window.STATCOM.getModuleData ? window.STATCOM.getModuleData() : {};
+        
+        // Find first module with non-OK status
+        for (let i = 1; i <= 64; i++) {
+            const moduleId = `M${String(i).padStart(3, '0')}`;
+            const statuses = moduleData[moduleId];
+            if (statuses) {
+                const hasIssue = Object.values(statuses).some(status => status !== 'OK');
+                if (hasIssue) {
+                    return moduleId;
+                }
+            }
+        }
+        return 'M001'; // Default to first module
+    }
+
+    /**
+     * Populate module selector dropdown
+     */
+    function populateModuleSelector() {
+        const selector = document.getElementById('module-selector');
+        if (!selector) return;
+
+        selector.innerHTML = '';
+
+        for (let i = 1; i <= 64; i++) {
+            const moduleId = `M${String(i).padStart(3, '0')}`;
+            const option = document.createElement('option');
+            option.value = moduleId;
+            option.textContent = moduleId;
+            selector.appendChild(option);
+        }
+    }
+
+    /**
+     * Set up event listeners
+     */
+    function setupEventListeners() {
+        // Module selector change
+        const selector = document.getElementById('module-selector');
+        if (selector) {
+            selector.addEventListener('change', function() {
+                selectedModuleId = this.value;
+                updateCharts();
+            });
+        }
+
+        // Time range buttons
+        const timeRangeButtons = document.querySelectorAll('.time-range-btn');
+        timeRangeButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active state
+                timeRangeButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                // Update time range and charts
+                currentTimeRange = this.dataset.range;
+                updateCharts();
+            });
+        });
+    }
+
+    /**
+     * Initialize all charts
+     */
+    function initializeCharts() {
+        // Check if Chart.js is loaded
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js is not loaded. Charts will not be displayed.');
+            showChartLoadError();
+            return;
+        }
+
+        const chartConfig = getChartConfig();
+
+        // Voltage Chart
+        const voltageCtx = document.getElementById('voltage-chart');
+        if (voltageCtx) {
+            voltageChart = new Chart(voltageCtx, {
+                ...chartConfig,
+                data: generateTimeSeriesData('voltage')
+            });
+        }
+
+        // Current Chart
+        const currentCtx = document.getElementById('current-chart');
+        if (currentCtx) {
+            currentChart = new Chart(currentCtx, {
+                ...chartConfig,
+                data: generateTimeSeriesData('current')
+            });
+        }
+
+        // Temperature Chart
+        const temperatureCtx = document.getElementById('temperature-chart');
+        if (temperatureCtx) {
+            temperatureChart = new Chart(temperatureCtx, {
+                ...chartConfig,
+                data: generateTimeSeriesData('temperature')
+            });
+        }
+
+        // Power Factor Chart
+        const powerFactorCtx = document.getElementById('power-factor-chart');
+        if (powerFactorCtx) {
+            powerFactorChart = new Chart(powerFactorCtx, {
+                ...chartConfig,
+                data: generateTimeSeriesData('powerFactor')
+            });
+        }
+    }
+
+    /**
+     * Update all charts with new data
+     */
+    function updateCharts() {
+        if (voltageChart) {
+            voltageChart.data = generateTimeSeriesData('voltage');
+            voltageChart.update();
+        }
+        if (currentChart) {
+            currentChart.data = generateTimeSeriesData('current');
+            currentChart.update();
+        }
+        if (temperatureChart) {
+            temperatureChart.data = generateTimeSeriesData('temperature');
+            temperatureChart.update();
+        }
+        if (powerFactorChart) {
+            powerFactorChart.data = generateTimeSeriesData('powerFactor');
+            powerFactorChart.update();
+        }
+    }
+
+    /**
+     * Get base chart configuration
+     */
+    function getChartConfig() {
+        return {
+            type: 'line',
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: '#e0e0e0',
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(26, 35, 50, 0.95)',
+                        titleColor: '#4a9eff',
+                        bodyColor: '#e0e0e0',
+                        borderColor: '#2a3f5f',
+                        borderWidth: 1
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        grid: {
+                            color: '#2a3f5f',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#888',
+                            font: {
+                                size: 11
+                            }
+                        }
+                    },
+                    y: {
+                        display: true,
+                        grid: {
+                            color: '#2a3f5f',
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: '#888',
+                            font: {
+                                size: 11
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        };
+    }
+
+    /**
+     * Generate mock time-series data based on module status
+     */
+    function generateTimeSeriesData(dataType) {
+        const numPoints = currentTimeRange === '1h' ? 12 : 24; // 5-min intervals for 1h, 1-hour intervals for 24h
+        const labels = [];
+        const values = [];
+
+        // Get module data from the global STATCOM object
+        const moduleData = window.STATCOM && window.STATCOM.getModuleData ? window.STATCOM.getModuleData() : {};
+        
+        // Get module status
+        const statuses = moduleData[selectedModuleId] || {};
+        
+        // Determine status for this metric
+        let status = 'OK';
+        if (dataType === 'voltage') {
+            status = statuses['Voltage Level'] || 'OK';
+        } else if (dataType === 'current') {
+            status = statuses['Current Level'] || 'OK';
+        } else if (dataType === 'temperature') {
+            status = statuses['Thermal Status'] || 'OK';
+        } else if (dataType === 'powerFactor') {
+            // Power factor is derived, use average of voltage and current
+            const voltageStatus = statuses['Voltage Level'] || 'OK';
+            const currentStatus = statuses['Current Level'] || 'OK';
+            const priorities = { 'OK': 0, 'DEGRADED': 1, 'WARNING': 2, 'CRITICAL': 3 };
+            status = priorities[voltageStatus] > priorities[currentStatus] ? voltageStatus : currentStatus;
+        }
+
+        // Base values and thresholds for each metric
+        const metricConfig = {
+            voltage: { base: 11.0, threshold: 11.5, unit: 'kV', variance: 0.1 },
+            current: { base: 150, threshold: 180, unit: 'A', variance: 5 },
+            temperature: { base: 45, threshold: 70, unit: '°C', variance: 2 },
+            powerFactor: { base: 0.95, threshold: 0.80, unit: '', variance: 0.02 }  // Lower threshold for power factor degradation
+        };
+
+        const config = metricConfig[dataType];
+        const now = new Date();
+
+        for (let i = numPoints - 1; i >= 0; i--) {
+            // Calculate timestamp
+            const timeOffset = currentTimeRange === '1h' ? i * 5 : i * 60; // minutes
+            const timestamp = new Date(now.getTime() - timeOffset * 60 * 1000);
+            
+            // Format label
+            const label = currentTimeRange === '1h' 
+                ? timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                : timestamp.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' });
+            labels.push(label);
+
+            // Generate value based on status
+            let value;
+            if (status === 'OK') {
+                // Stable values with minor fluctuations
+                value = config.base + (Math.random() - 0.5) * config.variance;
+            } else if (status === 'DEGRADED') {
+                // Trending toward threshold
+                const progress = i / numPoints;
+                value = config.base + (config.threshold - config.base) * 0.6 * progress + (Math.random() - 0.5) * config.variance;
+            } else if (status === 'WARNING') {
+                // Close to threshold, fluctuating
+                const progress = i / numPoints;
+                value = config.base + (config.threshold - config.base) * 0.85 * progress + (Math.random() - 0.5) * config.variance * 2;
+            } else if (status === 'CRITICAL') {
+                // Exceeding threshold
+                const progress = i / numPoints;
+                value = config.threshold + (config.threshold - config.base) * 0.1 * progress + Math.random() * config.variance * 2;
+            }
+
+            // Round to appropriate precision
+            value = dataType === 'powerFactor' ? Math.round(value * 100) / 100 : Math.round(value * 10) / 10;
+            values.push(value);
+        }
+
+        // Determine line color based on status
+        const statusColors = {
+            'OK': '#2d5f4d',
+            'DEGRADED': '#d4a850',
+            'WARNING': '#e67e50',
+            'CRITICAL': '#c84848'
+        };
+
+        return {
+            labels: labels,
+            datasets: [{
+                label: `${selectedModuleId} - ${dataType.charAt(0).toUpperCase() + dataType.slice(1)}`,
+                data: values,
+                borderColor: statusColors[status],
+                backgroundColor: statusColors[status] + '20',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointHoverRadius: 5
+            }]
+        };
+    }
+
+    // Initialize when DOM is ready and when navigating to trends page
+    function setupTrendsInitialization() {
+        const trendsView = document.getElementById('view-trends');
+        if (!trendsView) return;
+
+        // Check if trends view is currently active
+        if (trendsView.classList.contains('active')) {
+            if (!voltageChart) {
+                initTrends();
+            }
+        }
+
+        // Set up observer for future navigation to trends
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (trendsView.classList.contains('active')) {
+                    if (!voltageChart) {
+                        initTrends();
+                    }
+                }
+            });
+        });
+
+        observer.observe(trendsView, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupTrendsInitialization);
+    } else {
+        setupTrendsInitialization();
+    }
+
+})();
+
+/**
+ * Alarms Page Implementation
+ * Display active and cleared alarms from module status data
+ */
+(function() {
+    'use strict';
+
+    let alarmsData = { active: [], cleared: [] };
+
+    /**
+     * Initialize Alarms page
+     */
+    function initAlarms() {
+        // Generate alarm data from module statuses
+        alarmsData = generateAlarmsFromModuleData();
+
+        // Render alarms
+        renderAlarms();
+    }
+
+    /**
+     * Generate alarms from module status data
+     */
+    function generateAlarmsFromModuleData() {
+        const activeAlarms = [];
+        const clearedAlarms = [];
+        const now = new Date();
+
+        // Get module data from the global STATCOM object
+        const moduleData = window.STATCOM && window.STATCOM.getModuleData ? window.STATCOM.getModuleData() : {};
+
+        // Iterate through all modules
+        for (let i = 1; i <= 64; i++) {
+            const moduleId = `M${String(i).padStart(3, '0')}`;
+            const statuses = moduleData[moduleId];
+
+            if (!statuses) continue;
+
+            // Check each status indicator
+            Object.entries(statuses).forEach(([statusType, statusValue]) => {
+                if (statusValue !== 'OK') {
+                    // Generate alarm for non-OK status
+                    const alarm = {
+                        moduleId: moduleId,
+                        type: statusType,
+                        severity: statusValue,
+                        activatedAt: new Date(now.getTime() - Math.random() * 24 * 60 * 60 * 1000) // Random time in last 24 hours
+                    };
+
+                    // Randomly decide if alarm is active or cleared (60% cleared, 40% active)
+                    if (Math.random() > 0.4) {
+                        // Cleared alarm
+                        const activationTime = alarm.activatedAt.getTime();
+                        const clearTime = activationTime + Math.random() * 12 * 60 * 60 * 1000; // Cleared within 12 hours
+                        
+                        if (clearTime < now.getTime()) {
+                            alarm.clearedAt = new Date(clearTime);
+                            alarm.duration = formatDuration(clearTime - activationTime);
+                            clearedAlarms.push(alarm);
+                        } else {
+                            activeAlarms.push(alarm);
+                        }
+                    } else {
+                        // Active alarm
+                        activeAlarms.push(alarm);
+                    }
+                }
+            });
+        }
+
+        // Sort active alarms by severity (CRITICAL > WARNING > DEGRADED) then by time
+        const severityPriority = { 'CRITICAL': 3, 'WARNING': 2, 'DEGRADED': 1 };
+        activeAlarms.sort((a, b) => {
+            const severityDiff = severityPriority[b.severity] - severityPriority[a.severity];
+            if (severityDiff !== 0) return severityDiff;
+            return b.activatedAt - a.activatedAt;
+        });
+
+        // Sort cleared alarms by cleared time (most recent first)
+        clearedAlarms.sort((a, b) => b.clearedAt - a.clearedAt);
+
+        return { active: activeAlarms, cleared: clearedAlarms };
+    }
+
+    /**
+     * Format duration in human-readable format
+     */
+    function formatDuration(milliseconds) {
+        const seconds = Math.floor(milliseconds / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (days > 0) return `${days}d ${hours % 24}h`;
+        if (hours > 0) return `${hours}h ${minutes % 60}m`;
+        if (minutes > 0) return `${minutes}m`;
+        return `${seconds}s`;
+    }
+
+    /**
+     * Format timestamp
+     */
+    function formatTimestamp(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    /**
+     * Render alarms to the page
+     */
+    function renderAlarms() {
+        renderActiveAlarms();
+        renderClearedAlarms();
+    }
+
+    /**
+     * Render active alarms
+     */
+    function renderActiveAlarms() {
+        const container = document.getElementById('active-alarms-list');
+        const countElement = document.getElementById('active-alarm-count');
+
+        if (!container) return;
+
+        // Update count
+        if (countElement) {
+            countElement.textContent = alarmsData.active.length;
+        }
+
+        // Clear container
+        container.innerHTML = '';
+
+        if (alarmsData.active.length === 0) {
+            container.innerHTML = '<div class="no-alarms-message">No active alarms</div>';
+            return;
+        }
+
+        // Render each alarm
+        alarmsData.active.forEach(alarm => {
+            const alarmRow = document.createElement('div');
+            alarmRow.className = `alarm-row severity-${alarm.severity.toLowerCase()}`;
+
+            alarmRow.innerHTML = `
+                <div class="alarm-severity-badge ${alarm.severity.toLowerCase()}">${alarm.severity}</div>
+                <div class="alarm-info">
+                    <div class="alarm-module">${alarm.moduleId}</div>
+                    <div class="alarm-type">${alarm.type}</div>
+                </div>
+                <div class="alarm-timestamps">
+                    <div class="alarm-timestamp active-time">${formatTimestamp(alarm.activatedAt)}</div>
+                </div>
+            `;
+
+            container.appendChild(alarmRow);
+        });
+    }
+
+    /**
+     * Render cleared alarms
+     */
+    function renderClearedAlarms() {
+        const container = document.getElementById('cleared-alarms-list');
+        const countElement = document.getElementById('cleared-alarm-count');
+
+        if (!container) return;
+
+        // Update count
+        if (countElement) {
+            countElement.textContent = alarmsData.cleared.length;
+        }
+
+        // Clear container
+        container.innerHTML = '';
+
+        if (alarmsData.cleared.length === 0) {
+            container.innerHTML = '<div class="no-alarms-message">No cleared alarms</div>';
+            return;
+        }
+
+        // Render each alarm
+        alarmsData.cleared.forEach(alarm => {
+            const alarmRow = document.createElement('div');
+            alarmRow.className = `alarm-row severity-${alarm.severity.toLowerCase()}`;
+
+            alarmRow.innerHTML = `
+                <div class="alarm-severity-badge ${alarm.severity.toLowerCase()}">${alarm.severity}</div>
+                <div class="alarm-info">
+                    <div class="alarm-module">${alarm.moduleId}</div>
+                    <div class="alarm-type">${alarm.type}</div>
+                </div>
+                <div class="alarm-timestamps">
+                    <div class="alarm-timestamp">Activated: ${formatTimestamp(alarm.activatedAt)}</div>
+                    <div class="alarm-timestamp">Cleared: ${formatTimestamp(alarm.clearedAt)}</div>
+                    <div class="alarm-duration">Duration: ${alarm.duration}</div>
+                </div>
+            `;
+
+            container.appendChild(alarmRow);
+        });
+    }
+
+    // Initialize when DOM is ready and when navigating to alarms page
+    function setupAlarmsInitialization() {
+        const alarmsView = document.getElementById('view-alarms');
+        if (!alarmsView) return;
+
+        // Function to try initialization
+        function tryInit() {
+            // Check if module data is available
+            if (!window.STATCOM || !window.STATCOM.getModuleData) {
+                // Wait for module data to be available
+                setTimeout(tryInit, 100);
+                return;
+            }
+
+            const moduleData = window.STATCOM.getModuleData();
+            if (!moduleData || Object.keys(moduleData).length === 0) {
+                // Wait for module data to be populated
+                setTimeout(tryInit, 100);
+                return;
+            }
+
+            // Initialize alarms if view is active and alarms haven't been generated yet
+            if (alarmsView.classList.contains('active')) {
+                if (alarmsData.active.length === 0 && alarmsData.cleared.length === 0) {
+                    initAlarms();
+                }
+            }
+        }
+
+        // Check if alarms view is currently active
+        tryInit();
+
+        // Set up observer for future navigation to alarms
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (alarmsView.classList.contains('active')) {
+                    tryInit();
+                }
+            });
+        });
+
+        observer.observe(alarmsView, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupAlarmsInitialization);
+    } else {
+        setupAlarmsInitialization();
+    }
+
+})();
