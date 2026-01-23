@@ -146,6 +146,15 @@ body {
 
     .sidebar-header h1 {
         font-size: 16px;
+        opacity: 0;
+        height: 0;
+        overflow: hidden;
+    }
+
+    .sidebar-header p {
+        opacity: 0;
+        height: 0;
+        overflow: hidden;
     }
 
     .nav-item {
@@ -156,6 +165,12 @@ body {
     .nav-icon {
         margin-right: 0;
         font-size: 22px;
+    }
+
+    .nav-label {
+        opacity: 0;
+        width: 0;
+        overflow: hidden;
     }
 
     .main-content {
