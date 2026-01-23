@@ -1026,8 +1026,12 @@
      * Initialize Alarms page
      */
     function initAlarms() {
+        console.log('initAlarms() called');
+        
         // Generate alarm data from module statuses
         alarmsData = generateAlarmsFromModuleData();
+        
+        console.log('Alarms generated - Active:', alarmsData.active.length, 'Cleared:', alarmsData.cleared.length);
 
         // Render alarms
         renderAlarms();
