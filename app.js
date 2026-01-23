@@ -1020,6 +1020,10 @@
 (function() {
     'use strict';
 
+    // Constants
+    const NOTIFICATION_DURATION_MS = 3000;
+    const NOTIFICATION_FADEOUT_MS = 300;
+
     let alarmsData = { active: [], cleared: [] };
     let filteredAlarmsData = { active: [], cleared: [] };
     let currentFilters = {
@@ -1199,7 +1203,7 @@
         ];
 
         if (allAlarms.length === 0) {
-            alert('No alarms to export with current filters');
+            showNotification('No alarms to export with current filters');
             return;
         }
 
@@ -1277,8 +1281,8 @@
             notification.style.animation = 'slideOut 0.3s ease-out';
             setTimeout(() => {
                 document.body.removeChild(notification);
-            }, 300);
-        }, 3000);
+            }, NOTIFICATION_FADEOUT_MS);
+        }, NOTIFICATION_DURATION_MS);
     }
 
     /**
