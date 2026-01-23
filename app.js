@@ -134,89 +134,139 @@
 
 /**
  * Module Overview Implementation
+ * Extensible, data-driven architecture for monitoring module statuses
  */
 (function() {
     'use strict';
 
-    // Module data structure with 13 modules
-    const modules = [
-        { id: 'pump1', name: 'Pump1' },
-        { id: 'pump2', name: 'Pump2' },
-        { id: 'pump3', name: 'Pump3' },
-        { id: 'pump4', name: 'Pump4' },
-        { id: 'valveA', name: 'ValveA' },
-        { id: 'valveB', name: 'ValveB' },
-        { id: 'valveC', name: 'ValveC' },
-        { id: 'valveD', name: 'ValveD' },
-        { id: 'sensorTemp', name: 'SensorTemp' },
-        { id: 'sensorPress', name: 'SensorPress' },
-        { id: 'cpu', name: 'CPU' },
-        { id: 'mem', name: 'Mem' },
-        { id: 'disk', name: 'Disk' }
+    // ============================================================================
+    // CONFIGURATION CONSTANTS - Easy to modify for future extensibility
+    // ============================================================================
+    
+    /**
+     * Grid size configuration
+     * Change this to create different grid sizes (e.g., 10 for 10x10 grid)
+     */
+    const GRID_SIZE = 8; // 8x8 = 64 modules
+    const TOTAL_MODULES = GRID_SIZE * GRID_SIZE;
+    
+    /**
+     * Status types - Easy to extend by adding more status types
+     * Each module will have all these status indicators
+     */
+    const STATUS_TYPES = [
+        'Gating OK',
+        'Overtemp',
+        'Comm Lost',
+        'Power Supply Error',
+        'Fan Fail',
+        'Vdc Fault',
+        'Sync Fault',
+        'Interlock',
+        'Voltage Level',
+        'Current Level',
+        'Thermal Status',
+        'Self Test'
     ];
-
-    // Status indicators for each module
-    const statusTypes = [
-        { id: 'gatingOk', name: 'Gating OK' },
-        { id: 'overtemp', name: 'Overtemp' },
-        { id: 'commLost', name: 'Comm Lost' },
-        { id: 'powerSupplyError', name: 'Power Supply Error' },
-        { id: 'fanFail', name: 'Fan Fail' },
-        { id: 'vdcFault', name: 'Vdc Fault' },
-        { id: 'syncFault', name: 'Sync Fault' },
-        { id: 'interlock', name: 'Interlock' },
-        { id: 'voltageLevel', name: 'Voltage Level' },
-        { id: 'currentLevel', name: 'Current Level' },
-        { id: 'thermalStatus', name: 'Thermal Status' },
-        { id: 'selfTest', name: 'Self Test' }
-    ];
-
-    // Status values
-    const statusValues = {
-        OK: { label: 'OK', class: 'status-ok' },
-        FAILED: { label: 'FAILED', class: 'status-error' },
-        WARNING: { label: 'WARNING', class: 'status-warning' },
-        CAUTION: { label: 'CAUTION', class: 'status-caution' }
+    
+    /**
+     * Status values and their display properties
+     * Priority: CRITICAL > WARNING > DEGRADED > OK
+     */
+    const STATUS_VALUES = {
+        OK: { 
+            label: 'OK', 
+            class: 'status-ok',
+            priority: 1,
+            color: '#2d5f4d'
+        },
+        DEGRADED: { 
+            label: 'DEGRADED', 
+            class: 'status-degraded',
+            priority: 2,
+            color: '#d4a850'
+        },
+        WARNING: { 
+            label: 'WARNING', 
+            class: 'status-warning',
+            priority: 3,
+            color: '#e67e50'
+        },
+        CRITICAL: { 
+            label: 'CRITICAL', 
+            class: 'status-critical',
+            priority: 4,
+            color: '#c84848'
+        }
     };
 
-    // Generate mock data for modules with realistic statuses
+    // ============================================================================
+    // DATA STRUCTURES
+    // ============================================================================
+    
+    /**
+     * Generate module list based on grid size
+     * Modules are named M001, M002, ..., M064 (or up to TOTAL_MODULES)
+     */
+    function generateModules() {
+        const modules = [];
+        for (let i = 1; i <= TOTAL_MODULES; i++) {
+            const moduleNumber = String(i).padStart(3, '0');
+            modules.push({
+                id: `M${moduleNumber}`,
+                name: `M${i}`,
+                displayName: `M${moduleNumber}`
+            });
+        }
+        return modules;
+    }
+    
+    const modules = generateModules();
+
+    /**
+     * Generate realistic mock data for all modules
+     * Distribution: ~50-55 green (OK), ~4-6 red (CRITICAL), ~3-5 orange (WARNING), ~2-4 yellow (DEGRADED)
+     */
     function generateModuleData() {
         const moduleData = {};
         
+        // Define which modules should have errors/warnings for demonstration
+        const criticalModules = [7, 15, 23, 38, 47, 59]; // 6 modules with critical errors
+        const warningModules = [3, 12, 29, 41, 53]; // 5 modules with warnings
+        const degradedModules = [5, 19, 35]; // 3 modules with degraded status
+        
         modules.forEach((module, moduleIndex) => {
             const statuses = {};
+            const moduleNum = moduleIndex + 1;
             
-            statusTypes.forEach((statusType, statusIndex) => {
-                // Generate realistic status distribution
-                // Most statuses should be OK, with some warnings and errors for demonstration
-                let status;
-                const rand = Math.random();
+            // Determine if this module has any issues
+            const hasCritical = criticalModules.includes(moduleNum);
+            const hasWarning = warningModules.includes(moduleNum);
+            const hasDegraded = degradedModules.includes(moduleNum);
+            
+            STATUS_TYPES.forEach((statusType, statusIndex) => {
+                let status = 'OK'; // Default to OK
                 
-                // Special cases for specific modules/statuses to show variety
-                if (module.id === 'pump2' && statusType.id === 'overtemp') {
-                    status = 'WARNING';
-                } else if (module.id === 'valveC' && statusType.id === 'commLost') {
-                    status = 'FAILED';
-                } else if (module.id === 'cpu' && statusType.id === 'thermalStatus') {
-                    status = 'CAUTION';
-                } else if (module.id === 'disk' && statusType.id === 'voltageLevel') {
-                    status = 'WARNING';
-                } else if (module.id === 'sensorPress' && statusType.id === 'powerSupplyError') {
-                    status = 'FAILED';
-                } else {
-                    // Random distribution with high probability of OK status
-                    if (rand < 0.85) {
-                        status = 'OK';
-                    } else if (rand < 0.92) {
-                        status = 'CAUTION';
-                    } else if (rand < 0.97) {
+                // Assign specific errors to specific modules for realistic demonstration
+                if (hasCritical) {
+                    // Give critical modules 1-2 critical statuses
+                    if (statusIndex === (moduleNum % STATUS_TYPES.length) || 
+                        statusIndex === ((moduleNum + 1) % STATUS_TYPES.length)) {
+                        status = 'CRITICAL';
+                    }
+                } else if (hasWarning) {
+                    // Give warning modules 1-2 warning statuses
+                    if (statusIndex === (moduleNum % STATUS_TYPES.length)) {
                         status = 'WARNING';
-                    } else {
-                        status = 'FAILED';
+                    }
+                } else if (hasDegraded) {
+                    // Give degraded modules 1 degraded status
+                    if (statusIndex === (moduleNum % STATUS_TYPES.length)) {
+                        status = 'DEGRADED';
                     }
                 }
                 
-                statuses[statusType.id] = status;
+                statuses[statusType] = status;
             });
             
             moduleData[module.id] = statuses;
@@ -225,26 +275,36 @@
         return moduleData;
     }
 
-    // Calculate overall module status based on individual statuses
-    function getOverallModuleStatus(moduleStatuses) {
-        const statusPriority = { FAILED: 4, WARNING: 3, CAUTION: 2, OK: 1 };
+    /**
+     * Calculate aggregate/overall module status based on worst individual status
+     * Priority: CRITICAL > WARNING > DEGRADED > OK
+     */
+    function getAggregateModuleStatus(moduleStatuses) {
+        let worstStatus = 'OK';
         let highestPriority = 0;
-        let overallStatus = 'OK';
         
         Object.values(moduleStatuses).forEach(status => {
-            if (statusPriority[status] > highestPriority) {
-                highestPriority = statusPriority[status];
-                overallStatus = status;
+            const statusPriority = STATUS_VALUES[status].priority;
+            if (statusPriority > highestPriority) {
+                highestPriority = statusPriority;
+                worstStatus = status;
             }
         });
         
-        return overallStatus;
+        return worstStatus;
     }
 
-    // Store module data
+    // ============================================================================
+    // STATE MANAGEMENT
+    // ============================================================================
+    
     let moduleData = {};
     let selectedModuleId = null;
 
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+    
     /**
      * Initialize Module Overview
      */
@@ -255,6 +315,9 @@
         // Render module grid
         renderModuleGrid();
         
+        // Render initial status legend
+        renderStatusLegend();
+        
         // Set up event delegation for module selection
         const moduleGrid = document.getElementById('module-grid');
         if (moduleGrid) {
@@ -262,35 +325,143 @@
         }
     }
 
+    // ============================================================================
+    // RENDERING FUNCTIONS
+    // ============================================================================
+    
     /**
      * Render the module grid
+     * Creates a dynamic grid based on GRID_SIZE configuration
      */
     function renderModuleGrid() {
         const moduleGrid = document.getElementById('module-grid');
         if (!moduleGrid) return;
         
+        // Set CSS Grid columns based on GRID_SIZE
+        moduleGrid.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
+        
         moduleGrid.innerHTML = '';
         
         modules.forEach(module => {
             const moduleStatuses = moduleData[module.id];
-            const overallStatus = getOverallModuleStatus(moduleStatuses);
-            const statusClass = statusValues[overallStatus].class;
+            const aggregateStatus = getAggregateModuleStatus(moduleStatuses);
+            const statusInfo = STATUS_VALUES[aggregateStatus];
             
             const moduleTile = document.createElement('div');
-            moduleTile.className = 'module-tile';
+            moduleTile.className = `module-tile ${statusInfo.class}`;
             moduleTile.dataset.moduleId = module.id;
             
             moduleTile.innerHTML = `
-                <div class="module-tile-header">
-                    <div class="module-name">${module.name}</div>
-                    <div class="module-status-indicator ${statusClass}"></div>
-                </div>
+                <div class="module-name">${module.name}</div>
             `;
             
             moduleGrid.appendChild(moduleTile);
         });
     }
 
+    /**
+     * Render status legend in the detail panel
+     * Shown when no module is selected
+     */
+    function renderStatusLegend() {
+        const detailPanel = document.getElementById('module-detail-panel');
+        if (!detailPanel) return;
+        
+        let statusTypesHtml = '';
+        STATUS_TYPES.forEach((statusType, index) => {
+            // Show variety of statuses in legend for demonstration
+            let exampleStatus;
+            if (index === 0) exampleStatus = 'OK';
+            else if (index === 1) exampleStatus = 'CRITICAL';
+            else if (index === 2) exampleStatus = 'DEGRADED';
+            else if (index === 3) exampleStatus = 'OK';
+            else if (index === 4) exampleStatus = 'WARNING';
+            else exampleStatus = 'OK';
+            
+            const statusInfo = STATUS_VALUES[exampleStatus];
+            
+            statusTypesHtml += `
+                <div class="legend-item">
+                    <span class="legend-status ${statusInfo.class}"></span>
+                    <span class="legend-name">${statusType}</span>
+                    <span class="legend-label">${statusInfo.label}</span>
+                </div>
+            `;
+        });
+        
+        detailPanel.innerHTML = `
+            <div class="detail-header">
+                <h3>Status Legend</h3>
+                <p>12 Status Indicators per Module</p>
+            </div>
+            <div class="legend-container">
+                ${statusTypesHtml}
+            </div>
+            <div class="legend-footer">
+                <h4>Color Meanings:</h4>
+                <div class="color-meanings">
+                    <div class="color-meaning">
+                        <span class="color-box status-ok"></span>
+                        <span>Green = OK/Normal</span>
+                    </div>
+                    <div class="color-meaning">
+                        <span class="color-box status-critical"></span>
+                        <span>Red = Critical Error</span>
+                    </div>
+                    <div class="color-meaning">
+                        <span class="color-box status-warning"></span>
+                        <span>Orange = Warning</span>
+                    </div>
+                    <div class="color-meaning">
+                        <span class="color-box status-degraded"></span>
+                        <span>Yellow = Degraded</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render the detail panel for a selected module
+     * Shows all 12 status indicators as colored cards
+     */
+    function renderDetailPanel(moduleId) {
+        const detailPanel = document.getElementById('module-detail-panel');
+        if (!detailPanel) return;
+        
+        const module = modules.find(m => m.id === moduleId);
+        if (!module) return;
+        
+        const moduleStatuses = moduleData[moduleId];
+        
+        let statusIndicatorsHtml = '';
+        STATUS_TYPES.forEach(statusType => {
+            const status = moduleStatuses[statusType];
+            const statusInfo = STATUS_VALUES[status];
+            
+            statusIndicatorsHtml += `
+                <div class="status-card ${statusInfo.class}">
+                    <span class="status-card-name">${statusType}</span>
+                    <span class="status-card-badge">${statusInfo.label}</span>
+                </div>
+            `;
+        });
+        
+        detailPanel.innerHTML = `
+            <div class="detail-header">
+                <h3>Module ${module.displayName}</h3>
+                <p>Status Indicators</p>
+            </div>
+            <div class="status-cards-container">
+                ${statusIndicatorsHtml}
+            </div>
+        `;
+    }
+
+    // ============================================================================
+    // EVENT HANDLERS
+    // ============================================================================
+    
     /**
      * Handle module tile click
      */
@@ -323,42 +494,10 @@
         }
     }
 
-    /**
-     * Render the detail panel for a selected module
-     */
-    function renderDetailPanel(moduleId) {
-        const detailPanel = document.getElementById('module-detail-panel');
-        if (!detailPanel) return;
-        
-        const module = modules.find(m => m.id === moduleId);
-        if (!module) return;
-        
-        const moduleStatuses = moduleData[moduleId];
-        
-        let statusIndicatorsHtml = '';
-        statusTypes.forEach(statusType => {
-            const status = moduleStatuses[statusType.id];
-            const statusInfo = statusValues[status];
-            
-            statusIndicatorsHtml += `
-                <div class="status-indicator-item ${statusInfo.class}">
-                    <span class="status-indicator-name">${statusType.name}</span>
-                    <span class="status-indicator-badge">${statusInfo.label}</span>
-                </div>
-            `;
-        });
-        
-        detailPanel.innerHTML = `
-            <div class="detail-header">
-                <h3>Module ${module.name}</h3>
-                <p>Status Indicators</p>
-            </div>
-            <div class="status-indicators">
-                ${statusIndicatorsHtml}
-            </div>
-        `;
-    }
-
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+    
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initModuleOverview);
