@@ -1024,6 +1024,7 @@
     const NOTIFICATION_DURATION_MS = 3000;
     const NOTIFICATION_FADEOUT_MS = 300;
     const MAX_DISPLAYED_CLEARED_ALARMS = 15;
+    const DEFAULT_TIME_RANGE_HOURS = 24;
 
     let alarmsData = { active: [], cleared: [] };
     let filteredAlarmsData = { active: [], cleared: [] };
@@ -1145,10 +1146,10 @@
             const hours = {
                 '1h': 1,
                 '6h': 6,
-                '24h': 24,
+                '24h': DEFAULT_TIME_RANGE_HOURS,
                 '7d': 168
             };
-            const hoursAgo = hours[currentFilters.timeRange] || 24;
+            const hoursAgo = hours[currentFilters.timeRange] || DEFAULT_TIME_RANGE_HOURS;
             timeCutoff = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
         }
 
@@ -1237,6 +1238,8 @@
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         
+        // Generate timestamp for filename (format: YYYY-MM-DD_HH-MM-SS)
+        // Removes milliseconds and 'Z' suffix by slicing off last 5 characters
         const timestamp = new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').slice(0, -5);
         const filename = `STATCOM_Alarms_${timestamp}.csv`;
         
@@ -1289,8 +1292,13 @@
         setTimeout(() => {
             notification.style.animation = 'slideOut 0.3s ease-out';
             setTimeout(() => {
-                if (document.body.contains(notification)) {
-                    notification.remove();
+                try {
+                    if (document.body.contains(notification)) {
+                        notification.remove();
+                    }
+                } catch (error) {
+                    // Notification may have been removed externally, safe to ignore
+                    console.debug('Notification removal error (safe to ignore):', error);
                 }
             }, NOTIFICATION_FADEOUT_MS);
         }, NOTIFICATION_DURATION_MS);
