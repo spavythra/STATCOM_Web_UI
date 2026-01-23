@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>STATCOM Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <div class="dashboard">
@@ -156,32 +157,48 @@
                     <h2>Trends</h2>
                     <p>Historical data and trend analysis</p>
                 </div>
-                <div class="view-content">
-                    <div class="card">
-                        <h3>Voltage Trends</h3>
-                        <div class="trend-chart">
-                            <div class="chart-placeholder">
-                                <p>📊 Voltage trend chart</p>
-                                <p class="chart-note">Real-time data visualization</p>
-                            </div>
+                
+                <!-- Trends Controls -->
+                <div class="trends-controls">
+                    <div class="control-group">
+                        <label for="module-selector">Module:</label>
+                        <select id="module-selector" class="module-selector">
+                            <!-- Options will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Time Range:</label>
+                        <div class="time-range-buttons">
+                            <button class="time-range-btn active" data-range="1h">1 Hour</button>
+                            <button class="time-range-btn" data-range="24h">24 Hours</button>
                         </div>
                     </div>
-                    <div class="card">
-                        <h3>Current Trends</h3>
-                        <div class="trend-chart">
-                            <div class="chart-placeholder">
-                                <p>📊 Current trend chart</p>
-                                <p class="chart-note">Real-time data visualization</p>
-                            </div>
+                </div>
+
+                <!-- Trends Charts -->
+                <div class="trends-charts-container">
+                    <div class="chart-card">
+                        <h3>Voltage Level (kV)</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="voltage-chart"></canvas>
                         </div>
                     </div>
-                    <div class="card">
+                    <div class="chart-card">
+                        <h3>Current Level (A)</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="current-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Temperature (°C)</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="temperature-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
                         <h3>Power Factor</h3>
-                        <div class="trend-chart">
-                            <div class="chart-placeholder">
-                                <p>📊 Power factor trend chart</p>
-                                <p class="chart-note">Real-time data visualization</p>
-                            </div>
+                        <div class="chart-wrapper">
+                            <canvas id="power-factor-chart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -193,36 +210,26 @@
                     <h2>Alarms</h2>
                     <p>Active and historical alarms</p>
                 </div>
-                <div class="view-content">
-                    <div class="card">
+                
+                <!-- Active Alarms Section -->
+                <div class="alarms-section">
+                    <div class="section-header">
                         <h3>Active Alarms</h3>
-                        <div class="alarm-list">
-                            <div class="alarm-item alarm-info">
-                                <span class="alarm-severity">ℹ️ INFO</span>
-                                <span class="alarm-time">08:30:00</span>
-                                <span class="alarm-message">System operating normally</span>
-                            </div>
-                        </div>
+                        <span class="alarm-count" id="active-alarm-count">0</span>
                     </div>
-                    <div class="card">
-                        <h3>Alarm History</h3>
-                        <div class="alarm-list">
-                            <div class="alarm-item alarm-warning">
-                                <span class="alarm-severity">⚠️ WARNING</span>
-                                <span class="alarm-time">07:45:23</span>
-                                <span class="alarm-message">Temperature approaching threshold - Cleared</span>
-                            </div>
-                            <div class="alarm-item alarm-info">
-                                <span class="alarm-severity">ℹ️ INFO</span>
-                                <span class="alarm-time">07:30:15</span>
-                                <span class="alarm-message">Routine maintenance completed</span>
-                            </div>
-                            <div class="alarm-item alarm-info">
-                                <span class="alarm-severity">ℹ️ INFO</span>
-                                <span class="alarm-time">06:00:00</span>
-                                <span class="alarm-message">Daily system check initiated</span>
-                            </div>
-                        </div>
+                    <div class="alarms-list" id="active-alarms-list">
+                        <!-- Active alarms will be rendered here by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Cleared Alarms Section -->
+                <div class="alarms-section">
+                    <div class="section-header">
+                        <h3>Cleared Alarms</h3>
+                        <span class="alarm-count" id="cleared-alarm-count">0</span>
+                    </div>
+                    <div class="alarms-list" id="cleared-alarms-list">
+                        <!-- Cleared alarms will be rendered here by JavaScript -->
                     </div>
                 </div>
             </div>
