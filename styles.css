@@ -472,6 +472,10 @@ body {
 }
 
 @media (max-width: 768px) {
+    .main-content {
+        margin-left: 60px;
+        padding: 20px 15px;
+    }
     .sidebar-header {
         padding: 20px 15px;
     }
