@@ -644,9 +644,6 @@
     let selectedModuleId = null;
     let currentTimeRange = '1h'; // '1h' or '24h'
 
-    // Get module data from the Module Overview
-    const moduleData = window.STATCOM && window.STATCOM.getModuleData ? window.STATCOM.getModuleData() : {};
-
     /**
      * Initialize Trends page
      */
@@ -680,6 +677,9 @@
      * Get default module to display (first module with issues, or M001)
      */
     function getDefaultModule() {
+        // Get module data from the global STATCOM object
+        const moduleData = window.STATCOM && window.STATCOM.getModuleData ? window.STATCOM.getModuleData() : {};
+        
         // Find first module with non-OK status
         for (let i = 1; i <= 64; i++) {
             const moduleId = `M${String(i).padStart(3, '0')}`;
@@ -887,6 +887,9 @@
         const labels = [];
         const values = [];
 
+        // Get module data from the global STATCOM object
+        const moduleData = window.STATCOM && window.STATCOM.getModuleData ? window.STATCOM.getModuleData() : {};
+        
         // Get module status
         const statuses = moduleData[selectedModuleId] || {};
         
@@ -1019,9 +1022,6 @@
 
     let alarmsData = { active: [], cleared: [] };
 
-    // Get module data from the Module Overview
-    const moduleData = window.STATCOM && window.STATCOM.getModuleData ? window.STATCOM.getModuleData() : {};
-
     /**
      * Initialize Alarms page
      */
@@ -1040,6 +1040,9 @@
         const activeAlarms = [];
         const clearedAlarms = [];
         const now = new Date();
+
+        // Get module data from the global STATCOM object
+        const moduleData = window.STATCOM && window.STATCOM.getModuleData ? window.STATCOM.getModuleData() : {};
 
         // Iterate through all modules
         for (let i = 1; i <= 64; i++) {
