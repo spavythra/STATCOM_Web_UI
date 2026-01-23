@@ -914,7 +914,7 @@
             voltage: { base: 11.0, threshold: 11.5, unit: 'kV', variance: 0.1 },
             current: { base: 150, threshold: 180, unit: 'A', variance: 5 },
             temperature: { base: 45, threshold: 70, unit: '°C', variance: 2 },
-            powerFactor: { base: 0.95, threshold: 0.85, unit: '', variance: 0.02 }
+            powerFactor: { base: 0.95, threshold: 0.80, unit: '', variance: 0.02 }  // Lower threshold for power factor degradation
         };
 
         const config = metricConfig[dataType];
@@ -928,7 +928,7 @@
             // Format label
             const label = currentTimeRange === '1h' 
                 ? timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-                : timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                : timestamp.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' });
             labels.push(label);
 
             // Generate value based on status
