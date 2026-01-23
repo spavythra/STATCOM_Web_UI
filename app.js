@@ -1026,12 +1026,8 @@
      * Initialize Alarms page
      */
     function initAlarms() {
-        console.log('initAlarms() called');
-        
         // Generate alarm data from module statuses
         alarmsData = generateAlarmsFromModuleData();
-        
-        console.log('Alarms generated - Active:', alarmsData.active.length, 'Cleared:', alarmsData.cleared.length);
 
         // Render alarms
         renderAlarms();
@@ -1225,20 +1221,13 @@
 
     // Initialize when DOM is ready and when navigating to alarms page
     function setupAlarmsInitialization() {
-        console.log('setupAlarmsInitialization() called');
         const alarmsView = document.getElementById('view-alarms');
-        if (!alarmsView) {
-            console.log('Alarms view element not found!');
-            return;
-        }
+        if (!alarmsView) return;
 
         // Function to try initialization
         function tryInit() {
-            console.log('tryInit() called, view active:', alarmsView.classList.contains('active'));
-            
             // Check if module data is available
             if (!window.STATCOM || !window.STATCOM.getModuleData) {
-                console.log('STATCOM API not available, waiting...');
                 // Wait for module data to be available
                 setTimeout(tryInit, 100);
                 return;
@@ -1246,24 +1235,16 @@
 
             const moduleData = window.STATCOM.getModuleData();
             if (!moduleData || Object.keys(moduleData).length === 0) {
-                console.log('Module data empty, waiting...');
                 // Wait for module data to be populated
                 setTimeout(tryInit, 100);
                 return;
             }
 
-            console.log('Module data available, keys:', Object.keys(moduleData).length);
-
             // Initialize alarms if view is active and alarms haven't been generated yet
             if (alarmsView.classList.contains('active')) {
                 if (alarmsData.active.length === 0 && alarmsData.cleared.length === 0) {
-                    console.log('Calling initAlarms()');
                     initAlarms();
-                } else {
-                    console.log('Alarms already initialized');
                 }
-            } else {
-                console.log('View not active yet');
             }
         }
 
@@ -1273,7 +1254,6 @@
         // Set up observer for future navigation to alarms
         const observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
-                console.log('Mutation observed, active:', alarmsView.classList.contains('active'));
                 if (alarmsView.classList.contains('active')) {
                     tryInit();
                 }
@@ -1281,7 +1261,6 @@
         });
 
         observer.observe(alarmsView, { attributes: true, attributeFilter: ['class'] });
-        console.log('Observer set up for alarms view');
     }
 
     if (document.readyState === 'loading') {
