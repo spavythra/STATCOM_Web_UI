@@ -667,6 +667,16 @@
     }
 
     /**
+     * Show error message when Chart.js fails to load
+     */
+    function showChartLoadError() {
+        const chartWrappers = document.querySelectorAll('.chart-wrapper');
+        chartWrappers.forEach(wrapper => {
+            wrapper.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #888; text-align: center; padding: 20px;">Chart.js library failed to load. Please check your internet connection.</div>';
+        });
+    }
+
+    /**
      * Get default module to display (first module with issues, or M001)
      */
     function getDefaultModule() {
@@ -734,6 +744,13 @@
      * Initialize all charts
      */
     function initializeCharts() {
+        // Check if Chart.js is loaded
+        if (typeof Chart === 'undefined') {
+            console.error('Chart.js is not loaded. Charts will not be displayed.');
+            showChartLoadError();
+            return;
+        }
+
         const chartConfig = getChartConfig();
 
         // Voltage Chart
@@ -960,30 +977,35 @@
     }
 
     // Initialize when DOM is ready and when navigating to trends page
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize when trends view becomes active
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    const trendsView = document.getElementById('view-trends');
-                    if (trendsView && trendsView.classList.contains('active')) {
-                        if (!voltageChart) {
-                            setTimeout(initTrends, 100);
-                        }
-                    }
-                });
-            });
-
-            const trendsView = document.getElementById('view-trends');
-            if (trendsView) {
-                observer.observe(trendsView, { attributes: true, attributeFilter: ['class'] });
-            }
-        });
-    } else {
+    function setupTrendsInitialization() {
         const trendsView = document.getElementById('view-trends');
-        if (trendsView && trendsView.classList.contains('active')) {
-            setTimeout(initTrends, 100);
+        if (!trendsView) return;
+
+        // Check if trends view is currently active
+        if (trendsView.classList.contains('active')) {
+            if (!voltageChart) {
+                initTrends();
+            }
         }
+
+        // Set up observer for future navigation to trends
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (trendsView.classList.contains('active')) {
+                    if (!voltageChart) {
+                        initTrends();
+                    }
+                }
+            });
+        });
+
+        observer.observe(trendsView, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupTrendsInitialization);
+    } else {
+        setupTrendsInitialization();
     }
 
 })();
@@ -1195,30 +1217,35 @@
     }
 
     // Initialize when DOM is ready and when navigating to alarms page
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize when alarms view becomes active
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
-                    const alarmsView = document.getElementById('view-alarms');
-                    if (alarmsView && alarmsView.classList.contains('active')) {
-                        if (alarmsData.active.length === 0 && alarmsData.cleared.length === 0) {
-                            setTimeout(initAlarms, 100);
-                        }
-                    }
-                });
-            });
-
-            const alarmsView = document.getElementById('view-alarms');
-            if (alarmsView) {
-                observer.observe(alarmsView, { attributes: true, attributeFilter: ['class'] });
-            }
-        });
-    } else {
+    function setupAlarmsInitialization() {
         const alarmsView = document.getElementById('view-alarms');
-        if (alarmsView && alarmsView.classList.contains('active')) {
-            setTimeout(initAlarms, 100);
+        if (!alarmsView) return;
+
+        // Check if alarms view is currently active
+        if (alarmsView.classList.contains('active')) {
+            if (alarmsData.active.length === 0 && alarmsData.cleared.length === 0) {
+                initAlarms();
+            }
         }
+
+        // Set up observer for future navigation to alarms
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (alarmsView.classList.contains('active')) {
+                    if (alarmsData.active.length === 0 && alarmsData.cleared.length === 0) {
+                        initAlarms();
+                    }
+                }
+            });
+        });
+
+        observer.observe(alarmsView, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupAlarmsInitialization);
+    } else {
+        setupAlarmsInitialization();
     }
 
 })();
