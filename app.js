@@ -867,7 +867,10 @@
                             font: {
                                 size: 11
                             }
-                        }
+                        },
+                        // Auto-zoom: Automatically adjust Y-axis range based on data
+                        beginAtZero: false,
+                        grace: '5%'  // Add 5% padding above and below data range
                     }
                 },
                 interaction: {
