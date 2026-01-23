@@ -286,6 +286,11 @@
      * This function ensures data consistency between module tile colors and their detail panel statuses.
      * The tile color MUST accurately reflect the worst status among all 12 status indicators.
      * 
+     * The 12 status indicators evaluated are:
+     *   1. Gating OK         2. Overtemp           3. Comm Lost          4. Power Supply Error
+     *   5. Fan Fail          6. Vdc Fault          7. Sync Fault         8. Interlock
+     *   9. Voltage Level    10. Current Level     11. Thermal Status    12. Self Test
+     * 
      * Priority hierarchy (worst to best):
      *   CRITICAL (priority 4, red)    - Most severe, requires immediate attention
      *   WARNING  (priority 3, orange) - Attention needed
@@ -326,12 +331,14 @@
      * Checks that each module's tile color correctly reflects its worst status indicator.
      * Logs warnings to console if any inconsistencies are detected.
      * 
-     * @param {Object} moduleData - The complete module data object
+     * @param {Object} moduleData - The complete module data object containing status for all modules
      * @returns {Array} Array of inconsistency reports (empty if all consistent)
      */
     function validateModuleConsistency(moduleData) {
         const inconsistencies = [];
         
+        // Iterate through all modules defined in the outer scope
+        // 'modules' is accessible from the parent closure (defined at line 224)
         modules.forEach(module => {
             const moduleStatuses = moduleData[module.id];
             const calculatedStatus = getAggregateModuleStatus(moduleStatuses);
