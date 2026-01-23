@@ -799,12 +799,6 @@ body {
 @media (max-width: 600px) {
     .module-grid {
         grid-template-columns: repeat(4, 1fr) !important;
-    }
-}
-
-@media (max-width: 480px) {
-    .module-grid {
-        grid-template-columns: repeat(4, 1fr) !important;
         gap: 5px;
     }
     

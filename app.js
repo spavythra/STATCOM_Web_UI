@@ -231,6 +231,7 @@
         const moduleData = {};
         
         // Define which modules should have errors/warnings for demonstration
+        // These specific modules will show different error states
         const criticalModules = [7, 15, 23, 38, 47, 59]; // 6 modules with critical errors
         const warningModules = [3, 12, 29, 41, 53]; // 5 modules with warnings
         const degradedModules = [5, 19, 35]; // 3 modules with degraded status
@@ -248,19 +249,23 @@
                 let status = 'OK'; // Default to OK
                 
                 // Assign specific errors to specific modules for realistic demonstration
+                // Using modulo to distribute errors across different status types within a module
                 if (hasCritical) {
                     // Give critical modules 1-2 critical statuses
+                    // The modulo operation ensures different status types fail for different modules
                     if (statusIndex === (moduleNum % STATUS_TYPES.length) || 
                         statusIndex === ((moduleNum + 1) % STATUS_TYPES.length)) {
                         status = 'CRITICAL';
                     }
                 } else if (hasWarning) {
-                    // Give warning modules 1-2 warning statuses
+                    // Give warning modules 1 warning status
+                    // Using modulo ensures each warning module fails on a different status type
                     if (statusIndex === (moduleNum % STATUS_TYPES.length)) {
                         status = 'WARNING';
                     }
                 } else if (hasDegraded) {
                     // Give degraded modules 1 degraded status
+                    // Using modulo ensures each degraded module fails on a different status type
                     if (statusIndex === (moduleNum % STATUS_TYPES.length)) {
                         status = 'DEGRADED';
                     }
@@ -367,17 +372,14 @@
         const detailPanel = document.getElementById('module-detail-panel');
         if (!detailPanel) return;
         
+        // Create example status mapping for legend demonstration
+        // Shows variety of statuses: OK, CRITICAL, DEGRADED, WARNING
+        const exampleStatuses = ['OK', 'CRITICAL', 'DEGRADED', 'OK', 'WARNING'];
+        
         let statusTypesHtml = '';
         STATUS_TYPES.forEach((statusType, index) => {
-            // Show variety of statuses in legend for demonstration
-            let exampleStatus;
-            if (index === 0) exampleStatus = 'OK';
-            else if (index === 1) exampleStatus = 'CRITICAL';
-            else if (index === 2) exampleStatus = 'DEGRADED';
-            else if (index === 3) exampleStatus = 'OK';
-            else if (index === 4) exampleStatus = 'WARNING';
-            else exampleStatus = 'OK';
-            
+            // Cycle through example statuses to show variety in legend
+            const exampleStatus = exampleStatuses[index % exampleStatuses.length];
             const statusInfo = STATUS_VALUES[exampleStatus];
             
             statusTypesHtml += `
