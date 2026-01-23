@@ -867,7 +867,10 @@
                             font: {
                                 size: 11
                             }
-                        }
+                        },
+                        // Auto-zoom: Automatically adjust Y-axis range based on data
+                        beginAtZero: false,
+                        grace: 0.05  // Add 5% padding above and below data range
                     }
                 },
                 interaction: {
@@ -1155,10 +1158,16 @@
             return;
         }
 
+        // Get current time once for all alarms
+        const now = new Date();
+
         // Render each alarm
         alarmsData.active.forEach(alarm => {
             const alarmRow = document.createElement('div');
             alarmRow.className = `alarm-row severity-${alarm.severity.toLowerCase()}`;
+            
+            // Calculate active duration
+            const activeDuration = formatDuration(now - alarm.activatedAt);
 
             alarmRow.innerHTML = `
                 <div class="alarm-severity-badge ${alarm.severity.toLowerCase()}">${alarm.severity}</div>
@@ -1168,6 +1177,7 @@
                 </div>
                 <div class="alarm-timestamps">
                     <div class="alarm-timestamp active-time">${formatTimestamp(alarm.activatedAt)}</div>
+                    <div class="alarm-duration">Active for ${activeDuration}</div>
                 </div>
             `;
 
@@ -1206,7 +1216,7 @@
                 <div class="alarm-severity-badge ${alarm.severity.toLowerCase()}">${alarm.severity}</div>
                 <div class="alarm-info">
                     <div class="alarm-module">${alarm.moduleId}</div>
-                    <div class="alarm-type">${alarm.type}</div>
+                    <div class="alarm-type">${alarm.type} - Cleared</div>
                 </div>
                 <div class="alarm-timestamps">
                     <div class="alarm-timestamp">Activated: ${formatTimestamp(alarm.activatedAt)}</div>
