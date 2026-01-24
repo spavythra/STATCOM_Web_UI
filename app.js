@@ -1621,6 +1621,8 @@
     
     // Configuration constants
     const MIN_PASSWORD_LENGTH = 4;
+    const STORAGE_KEY_IP = 'statcom_ip_address';
+    const STORAGE_KEY_PORT = 'statcom_port';
     
     // Connection state
     let connectionState = {
@@ -1628,8 +1630,12 @@
         ipAddress: '192.168.1.100',
         port: '502',
         lastConnected: null,
-        connectionAttempts: 0
+        connectionAttempts: 0,
+        connectedAt: null
     };
+    
+    // Uptime tracking
+    let uptimeInterval = null;
     
     // Initialize connection form
     function initConnectionForm() {
@@ -1638,6 +1644,10 @@
         const ipInput = document.getElementById('ip-address-input');
         const portInput = document.getElementById('port-input');
         const passwordInput = document.getElementById('password-input');
+        const passwordToggle = document.getElementById('password-toggle');
+        
+        // Load saved settings from localStorage
+        loadSavedSettings();
         
         if (connectBtn) {
             connectBtn.addEventListener('click', handleConnect);
@@ -1645,6 +1655,84 @@
         
         if (disconnectBtn) {
             disconnectBtn.addEventListener('click', handleDisconnect);
+        }
+        
+        // Password toggle functionality
+        if (passwordToggle) {
+            passwordToggle.addEventListener('click', togglePasswordVisibility);
+        }
+        
+        // Auto-save IP and Port on change
+        if (ipInput) {
+            ipInput.addEventListener('change', () => saveToLocalStorage(STORAGE_KEY_IP, ipInput.value));
+            ipInput.addEventListener('blur', () => clearInputError('ip'));
+        }
+        
+        if (portInput) {
+            portInput.addEventListener('change', () => saveToLocalStorage(STORAGE_KEY_PORT, portInput.value));
+            portInput.addEventListener('blur', () => clearInputError('port'));
+        }
+        
+        if (passwordInput) {
+            passwordInput.addEventListener('blur', () => clearInputError('password'));
+        }
+    }
+    
+    // Load saved settings from localStorage
+    function loadSavedSettings() {
+        const savedIp = localStorage.getItem(STORAGE_KEY_IP);
+        const savedPort = localStorage.getItem(STORAGE_KEY_PORT);
+        
+        const ipInput = document.getElementById('ip-address-input');
+        const portInput = document.getElementById('port-input');
+        
+        if (savedIp && ipInput) {
+            ipInput.value = savedIp;
+            connectionState.ipAddress = savedIp;
+        }
+        
+        if (savedPort && portInput) {
+            portInput.value = savedPort;
+            connectionState.port = savedPort;
+        }
+    }
+    
+    // Save to localStorage
+    function saveToLocalStorage(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            console.error('Error saving to localStorage:', e);
+        }
+    }
+    
+    // Toggle password visibility
+    function togglePasswordVisibility() {
+        const passwordInput = document.getElementById('password-input');
+        const toggleIcon = document.querySelector('.toggle-icon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.textContent = '🙈';
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.textContent = '👁️';
+        }
+    }
+    
+    // Clear input error message
+    function clearInputError(field) {
+        const errorEl = document.getElementById(`${field}-error`);
+        if (errorEl) {
+            errorEl.textContent = '';
+        }
+    }
+    
+    // Show input error message
+    function showInputError(field, message) {
+        const errorEl = document.getElementById(`${field}-error`);
+        if (errorEl) {
+            errorEl.textContent = message;
         }
     }
     
@@ -1654,9 +1742,22 @@
         const portInput = document.getElementById('port-input');
         const passwordInput = document.getElementById('password-input');
         
-        // Validate inputs
-        if (!validateConnectionInputs(ipInput.value, portInput.value, passwordInput.value)) {
-            showConnectionError('Invalid connection parameters');
+        // Clear all error messages
+        clearInputError('ip');
+        clearInputError('port');
+        clearInputError('password');
+        
+        // Validate inputs with specific error messages
+        const validationErrors = validateConnectionInputsWithMessages(
+            ipInput.value, 
+            portInput.value, 
+            passwordInput.value
+        );
+        
+        if (validationErrors.hasErrors) {
+            if (validationErrors.ip) showInputError('ip', validationErrors.ip);
+            if (validationErrors.port) showInputError('port', validationErrors.port);
+            if (validationErrors.password) showInputError('password', validationErrors.password);
             return;
         }
         
@@ -1671,9 +1772,15 @@
                 connectionState.ipAddress = ipInput.value;
                 connectionState.port = portInput.value;
                 connectionState.lastConnected = new Date();
+                connectionState.connectedAt = new Date();
+                
+                // Save successful connection settings
+                saveToLocalStorage(STORAGE_KEY_IP, ipInput.value);
+                saveToLocalStorage(STORAGE_KEY_PORT, portInput.value);
                 
                 setConnectionState('connected');
                 showConnectionSuccess();
+                startUptimeCounter();
             })
             .catch((error) => {
                 // Failure
@@ -1691,8 +1798,40 @@
     // Handle disconnect
     function handleDisconnect() {
         connectionState.isConnected = false;
-        connectionState.lastConnected = null;
+        connectionState.connectedAt = null;
+        stopUptimeCounter();
         setConnectionState('disconnected');
+    }
+    
+    // Start uptime counter
+    function startUptimeCounter() {
+        stopUptimeCounter(); // Clear any existing interval
+        updateUptime(); // Update immediately
+        uptimeInterval = setInterval(updateUptime, 1000); // Update every second
+    }
+    
+    // Stop uptime counter
+    function stopUptimeCounter() {
+        if (uptimeInterval) {
+            clearInterval(uptimeInterval);
+            uptimeInterval = null;
+        }
+    }
+    
+    // Update uptime display
+    function updateUptime() {
+        const uptimeEl = document.getElementById('connection-uptime');
+        if (!uptimeEl || !connectionState.connectedAt) return;
+        
+        const now = new Date();
+        const diffMs = now - connectionState.connectedAt;
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const hours = Math.floor(diffSeconds / 3600);
+        const minutes = Math.floor((diffSeconds % 3600) / 60);
+        const seconds = diffSeconds % 60;
+        
+        const uptimeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        uptimeEl.textContent = uptimeStr;
     }
     
     // Simulate connection (replace with actual API)
@@ -1715,6 +1854,8 @@
         const disconnectBtn = document.getElementById('disconnect-btn');
         const statusBadge = document.getElementById('status-badge');
         const statusText = document.getElementById('status-text');
+        const connectionInfo = document.getElementById('connection-info');
+        const connectionAddress = document.getElementById('connection-address');
         
         // Remove all state classes
         connectBtn.classList.remove('connecting', 'connected', 'error');
@@ -1726,6 +1867,7 @@
                 connectBtn.disabled = true;
                 statusBadge.className = 'status-badge status-connecting';
                 statusText.textContent = 'Connecting...';
+                if (connectionInfo) connectionInfo.style.display = 'none';
                 break;
                 
             case 'connected':
@@ -1737,14 +1879,21 @@
                 statusBadge.className = 'status-badge status-connected';
                 statusText.textContent = 'Connected';
                 updateLastConnectedTime();
+                
+                // Show connection info
+                if (connectionInfo) connectionInfo.style.display = 'block';
+                if (connectionAddress) {
+                    connectionAddress.textContent = `${connectionState.ipAddress}:${connectionState.port}`;
+                }
                 break;
                 
             case 'error':
                 connectBtn.classList.add('error');
-                connectBtn.innerHTML = '✗ Connection Failed - Retry';
+                connectBtn.innerHTML = '✗ Connection Failed';
                 connectBtn.disabled = false;
                 statusBadge.className = 'status-badge status-error';
                 statusText.textContent = 'Connection Failed';
+                if (connectionInfo) connectionInfo.style.display = 'none';
                 break;
                 
             case 'disconnected':
@@ -1756,6 +1905,7 @@
                 statusBadge.className = 'status-badge status-disconnected';
                 statusText.textContent = 'Disconnected';
                 updateLastConnectedTime();
+                if (connectionInfo) connectionInfo.style.display = 'none';
                 break;
         }
     }
@@ -1774,26 +1924,47 @@
         }
     }
     
-    // Validate connection inputs
-    function validateConnectionInputs(ip, port, password) {
+    // Validate connection inputs with detailed messages
+    function validateConnectionInputsWithMessages(ip, port, password) {
+        const errors = { hasErrors: false };
+        
         // IP validation - check format and octet ranges (0-255)
         const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-        if (!ipRegex.test(ip)) return false;
-        
-        const octets = ip.split('.');
-        for (let i = 0; i < octets.length; i++) {
-            const octet = parseInt(octets[i], 10);
-            if (octet < 0 || octet > 255) return false;
+        if (!ipRegex.test(ip)) {
+            errors.ip = 'Invalid IP address format';
+            errors.hasErrors = true;
+        } else {
+            const octets = ip.split('.');
+            for (let i = 0; i < octets.length; i++) {
+                const octet = parseInt(octets[i], 10);
+                if (octet < 0 || octet > 255) {
+                    errors.ip = 'IP address octets must be 0-255';
+                    errors.hasErrors = true;
+                    break;
+                }
+            }
         }
         
         // Port validation
         const portNum = parseInt(port);
-        if (isNaN(portNum) || portNum < 1 || portNum > 65535) return false;
+        if (isNaN(portNum)) {
+            errors.port = 'Port must be a number';
+            errors.hasErrors = true;
+        } else if (portNum < 1 || portNum > 65535) {
+            errors.port = 'Port must be between 1 and 65535';
+            errors.hasErrors = true;
+        }
         
         // Password validation
-        if (!password || password.length < MIN_PASSWORD_LENGTH) return false;
+        if (!password || password.trim().length === 0) {
+            errors.password = 'Password is required';
+            errors.hasErrors = true;
+        } else if (password.length < MIN_PASSWORD_LENGTH) {
+            errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+            errors.hasErrors = true;
+        }
         
-        return true;
+        return errors;
     }
     
     // Show connection success message
