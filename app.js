@@ -1619,6 +1619,9 @@
 (function() {
     'use strict';
     
+    // Configuration constants
+    const MIN_PASSWORD_LENGTH = 4;
+    
     // Connection state
     let connectionState = {
         isConnected: false,
@@ -1650,8 +1653,6 @@
         const ipInput = document.getElementById('ip-address-input');
         const portInput = document.getElementById('port-input');
         const passwordInput = document.getElementById('password-input');
-        const connectBtn = document.getElementById('connect-btn');
-        const statusIndicator = document.getElementById('connection-status');
         
         // Validate inputs
         if (!validateConnectionInputs(ipInput.value, portInput.value, passwordInput.value)) {
@@ -1698,8 +1699,8 @@
     function simulateConnection(ip, port, password) {
         return new Promise((resolve, reject) => {
             setTimeout(() => {
-                // Simple validation: password must be at least 4 characters
-                if (password.length >= 4) {
+                // Simple validation: password must meet minimum length
+                if (password.length >= MIN_PASSWORD_LENGTH) {
                     resolve();
                 } else {
                     reject(new Error('Invalid credentials'));
@@ -1775,16 +1776,22 @@
     
     // Validate connection inputs
     function validateConnectionInputs(ip, port, password) {
-        // Basic IP validation (simple regex)
+        // IP validation - check format and octet ranges (0-255)
         const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
         if (!ipRegex.test(ip)) return false;
+        
+        const octets = ip.split('.');
+        for (let i = 0; i < octets.length; i++) {
+            const octet = parseInt(octets[i], 10);
+            if (octet < 0 || octet > 255) return false;
+        }
         
         // Port validation
         const portNum = parseInt(port);
         if (isNaN(portNum) || portNum < 1 || portNum > 65535) return false;
         
         // Password validation
-        if (!password || password.length < 4) return false;
+        if (!password || password.length < MIN_PASSWORD_LENGTH) return false;
         
         return true;
     }
