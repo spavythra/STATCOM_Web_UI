@@ -1778,7 +1778,9 @@
                 connectionState.isConnected = true;
                 connectionState.ipAddress = ipInput.value;
                 connectionState.port = portInput.value;
+                // lastConnected: timestamp shown in UI for "Last connected" display
                 connectionState.lastConnected = new Date();
+                // connectedAt: timestamp used to calculate connection uptime
                 connectionState.connectedAt = new Date();
                 
                 // Save successful connection settings
@@ -1962,11 +1964,12 @@
             errors.hasErrors = true;
         }
         
-        // Password validation
-        if (!password || password.trim().length === 0) {
+        // Password validation - use trimmed password for consistency
+        const trimmedPassword = password ? password.trim() : '';
+        if (trimmedPassword.length === 0) {
             errors.password = 'Password is required';
             errors.hasErrors = true;
-        } else if (password.trim().length < MIN_PASSWORD_LENGTH) {
+        } else if (trimmedPassword.length < MIN_PASSWORD_LENGTH) {
             errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
             errors.hasErrors = true;
         }
