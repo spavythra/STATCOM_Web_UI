@@ -1710,13 +1710,20 @@
     function togglePasswordVisibility() {
         const passwordInput = document.getElementById('password-input');
         const toggleIcon = document.querySelector('.toggle-icon');
+        const toggleButton = document.getElementById('password-toggle');
         
         if (passwordInput.type === 'password') {
             passwordInput.type = 'text';
             toggleIcon.textContent = '🙈';
+            if (toggleButton) {
+                toggleButton.setAttribute('aria-label', 'Hide password');
+            }
         } else {
             passwordInput.type = 'password';
             toggleIcon.textContent = '👁️';
+            if (toggleButton) {
+                toggleButton.setAttribute('aria-label', 'Show password');
+            }
         }
     }
     
@@ -1959,7 +1966,7 @@
         if (!password || password.trim().length === 0) {
             errors.password = 'Password is required';
             errors.hasErrors = true;
-        } else if (password.length < MIN_PASSWORD_LENGTH) {
+        } else if (password.trim().length < MIN_PASSWORD_LENGTH) {
             errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
             errors.hasErrors = true;
         }
