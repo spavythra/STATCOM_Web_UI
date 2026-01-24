@@ -1484,9 +1484,83 @@ body {
     margin-top: 24px;
 }
 
+/* Password Input Wrapper */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper input {
+    flex: 1;
+    padding-right: 45px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 5px 8px;
+    color: #888;
+    transition: color 0.3s ease;
+    font-size: 18px;
+}
+
+.password-toggle:hover {
+    color: #4a9eff;
+}
+
+.toggle-icon {
+    display: inline-block;
+}
+
+/* Error Messages */
+.error-message {
+    display: block;
+    color: #e74c3c;
+    font-size: 12px;
+    margin-top: 5px;
+    min-height: 18px;
+}
+
+/* Connection Info Display */
+.connection-info {
+    background: rgba(74, 158, 255, 0.1);
+    border: 1px solid #2a3f5f;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.connection-details {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.connection-details:last-child {
+    margin-bottom: 0;
+}
+
+.connection-label {
+    font-size: 13px;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.connection-value {
+    font-size: 14px;
+    color: #4a9eff;
+    font-weight: 600;
+}
+
 /* Connect Button Styles */
 .connect-btn {
-    background: #4a9eff;
+    background: #2563eb;
     color: white;
     border: none;
     padding: 14px 32px;
@@ -1498,28 +1572,29 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    justify-content: center;
 }
 
-.connect-btn:hover {
-    background: #3a8ee8;
+.connect-btn:hover:not(:disabled) {
+    background: #1d4ed8;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
 }
 
 .connect-btn.connecting {
-    background: #4a9eff;
+    background: #3b82f6;
     cursor: wait;
-    opacity: 0.8;
+    opacity: 0.9;
 }
 
 .connect-btn.connected {
-    background: #2ecc71;
-    box-shadow: 0 0 20px rgba(46, 204, 113, 0.6);
-    border: 2px solid #27ae60;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    animation: successPulse 2s ease-in-out infinite;
 }
 
 .connect-btn.error {
-    background: #e74c3c;
+    background: #ef4444;
     animation: shake 0.5s;
 }
 
@@ -1572,4 +1647,13 @@ body {
     0%, 100% { transform: translateX(0); }
     25% { transform: translateX(-10px); }
     75% { transform: translateX(10px); }
+}
+
+@keyframes successPulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(16, 185, 129, 0.9);
+    }
 }
