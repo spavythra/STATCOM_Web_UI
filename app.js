@@ -1611,3 +1611,200 @@
     }
 
 })();
+
+/**
+ * Connection Manager
+ * Handles STATCOM device connection and status
+ */
+(function() {
+    'use strict';
+    
+    // Connection state
+    let connectionState = {
+        isConnected: false,
+        ipAddress: '192.168.1.100',
+        port: '502',
+        lastConnected: null,
+        connectionAttempts: 0
+    };
+    
+    // Initialize connection form
+    function initConnectionForm() {
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const ipInput = document.getElementById('ip-address-input');
+        const portInput = document.getElementById('port-input');
+        const passwordInput = document.getElementById('password-input');
+        
+        if (connectBtn) {
+            connectBtn.addEventListener('click', handleConnect);
+        }
+        
+        if (disconnectBtn) {
+            disconnectBtn.addEventListener('click', handleDisconnect);
+        }
+    }
+    
+    // Handle connection attempt
+    function handleConnect() {
+        const ipInput = document.getElementById('ip-address-input');
+        const portInput = document.getElementById('port-input');
+        const passwordInput = document.getElementById('password-input');
+        const connectBtn = document.getElementById('connect-btn');
+        const statusIndicator = document.getElementById('connection-status');
+        
+        // Validate inputs
+        if (!validateConnectionInputs(ipInput.value, portInput.value, passwordInput.value)) {
+            showConnectionError('Invalid connection parameters');
+            return;
+        }
+        
+        // Update button to connecting state
+        setConnectionState('connecting');
+        
+        // Simulate connection attempt (replace with actual API call)
+        simulateConnection(ipInput.value, portInput.value, passwordInput.value)
+            .then(() => {
+                // Success
+                connectionState.isConnected = true;
+                connectionState.ipAddress = ipInput.value;
+                connectionState.port = portInput.value;
+                connectionState.lastConnected = new Date();
+                
+                setConnectionState('connected');
+                showConnectionSuccess();
+            })
+            .catch((error) => {
+                // Failure
+                connectionState.connectionAttempts++;
+                setConnectionState('error');
+                showConnectionError(error.message);
+                
+                // Auto-revert to default after 3 seconds
+                setTimeout(() => {
+                    setConnectionState('disconnected');
+                }, 3000);
+            });
+    }
+    
+    // Handle disconnect
+    function handleDisconnect() {
+        connectionState.isConnected = false;
+        connectionState.lastConnected = null;
+        setConnectionState('disconnected');
+    }
+    
+    // Simulate connection (replace with actual API)
+    function simulateConnection(ip, port, password) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                // Simple validation: password must be at least 4 characters
+                if (password.length >= 4) {
+                    resolve();
+                } else {
+                    reject(new Error('Invalid credentials'));
+                }
+            }, 2000); // 2 second delay to simulate network
+        });
+    }
+    
+    // Set connection UI state
+    function setConnectionState(state) {
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const statusBadge = document.getElementById('status-badge');
+        const statusText = document.getElementById('status-text');
+        
+        // Remove all state classes
+        connectBtn.classList.remove('connecting', 'connected', 'error');
+        
+        switch(state) {
+            case 'connecting':
+                connectBtn.classList.add('connecting');
+                connectBtn.innerHTML = '<span class="spinner"></span> Connecting...';
+                connectBtn.disabled = true;
+                statusBadge.className = 'status-badge status-connecting';
+                statusText.textContent = 'Connecting...';
+                break;
+                
+            case 'connected':
+                connectBtn.classList.add('connected');
+                connectBtn.innerHTML = '✓ Connected';
+                connectBtn.disabled = true;
+                connectBtn.style.display = 'none';
+                disconnectBtn.style.display = 'inline-block';
+                statusBadge.className = 'status-badge status-connected';
+                statusText.textContent = 'Connected';
+                updateLastConnectedTime();
+                break;
+                
+            case 'error':
+                connectBtn.classList.add('error');
+                connectBtn.innerHTML = '✗ Connection Failed - Retry';
+                connectBtn.disabled = false;
+                statusBadge.className = 'status-badge status-error';
+                statusText.textContent = 'Connection Failed';
+                break;
+                
+            case 'disconnected':
+            default:
+                connectBtn.innerHTML = 'Connect';
+                connectBtn.disabled = false;
+                connectBtn.style.display = 'inline-block';
+                disconnectBtn.style.display = 'none';
+                statusBadge.className = 'status-badge status-disconnected';
+                statusText.textContent = 'Disconnected';
+                updateLastConnectedTime();
+                break;
+        }
+    }
+    
+    // Update last connected timestamp
+    function updateLastConnectedTime() {
+        const lastConnectedEl = document.getElementById('last-connected-time');
+        if (lastConnectedEl) {
+            if (connectionState.lastConnected) {
+                const timeStr = connectionState.lastConnected.toLocaleTimeString();
+                const dateStr = connectionState.lastConnected.toLocaleDateString();
+                lastConnectedEl.textContent = `Last connected: ${dateStr} ${timeStr}`;
+            } else {
+                lastConnectedEl.textContent = 'Never connected';
+            }
+        }
+    }
+    
+    // Validate connection inputs
+    function validateConnectionInputs(ip, port, password) {
+        // Basic IP validation (simple regex)
+        const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+        if (!ipRegex.test(ip)) return false;
+        
+        // Port validation
+        const portNum = parseInt(port);
+        if (isNaN(portNum) || portNum < 1 || portNum > 65535) return false;
+        
+        // Password validation
+        if (!password || password.length < 4) return false;
+        
+        return true;
+    }
+    
+    // Show connection success message
+    function showConnectionSuccess() {
+        console.log('Connection successful');
+        // Could add a toast notification here
+    }
+    
+    // Show connection error message
+    function showConnectionError(message) {
+        console.error('Connection error:', message);
+        // Could add a toast notification here
+    }
+    
+    // Initialize on DOM load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initConnectionForm);
+    } else {
+        initConnectionForm();
+    }
+})();
