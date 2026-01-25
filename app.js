@@ -2501,7 +2501,7 @@
         
         // Keep only last maxEvents
         if (events.length > maxEvents) {
-            events.splice(maxEvents);
+            events.length = maxEvents;
         }
         
         renderEventLog();
