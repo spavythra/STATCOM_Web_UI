@@ -2115,6 +2115,7 @@
     let pollingIntervalSeconds = 5;
     let isPollingEnabled = true;
     let lastUpdateTime = null;
+    let lastUpdatedIntervalId = null;
     let currentMetrics = {
         cpu: { value: 0, status: 'ok', ecode: null },
         memory: { value: 0, status: 'ok', ecode: null },
@@ -2302,6 +2303,11 @@
         const hash = window.location.hash;
         if (!hash.includes('diagnostics')) {
             stopPolling();
+            // Clean up last updated interval
+            if (lastUpdatedIntervalId) {
+                clearInterval(lastUpdatedIntervalId);
+                lastUpdatedIntervalId = null;
+            }
         } else {
             // Restart polling if coming back to diagnostics page
             if (isPollingEnabled) {
@@ -2495,7 +2501,7 @@
         
         // Keep only last maxEvents
         if (events.length > maxEvents) {
-            events = events.slice(0, maxEvents);
+            events.splice(maxEvents);
         }
         
         renderEventLog();
@@ -2630,7 +2636,12 @@
      * Update last updated display
      */
     function updateLastUpdatedDisplay() {
-        setInterval(() => {
+        // Clear any existing interval
+        if (lastUpdatedIntervalId) {
+            clearInterval(lastUpdatedIntervalId);
+        }
+        
+        lastUpdatedIntervalId = setInterval(() => {
             if (lastUpdateTime) {
                 const secondsAgo = Math.floor((new Date() - lastUpdateTime) / 1000);
                 let text;
@@ -2678,7 +2689,7 @@
      * Initialize when DOM is ready and on diagnostics page
      */
     function tryInit() {
-        const MAX_RETRIES = 50; // Max 5 seconds at 100ms intervals
+        const MAX_RETRIES = 50; // Max 50 retries over 5 seconds at 100ms intervals
         let retryCount = 0;
         
         function attemptInit() {
