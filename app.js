@@ -1996,3 +1996,714 @@
         initConnectionForm();
     }
 })();
+
+// ============================================================================
+// DIAGNOSTICS LIVE MONITORING
+// ============================================================================
+
+(function() {
+    'use strict';
+
+    // E-Code definitions
+    const ECODE_DEFINITIONS = {
+        'E001': {
+            title: 'CPU Overload',
+            component: 'System Processor',
+            description: 'CPU usage has exceeded critical threshold. System performance may be degraded.',
+            threshold: '90%',
+            resolutions: [
+                'Review active processes and terminate unnecessary ones',
+                'Check for runaway processes or infinite loops',
+                'Consider upgrading CPU or optimizing workload',
+                'Review system logs for resource-intensive operations'
+            ]
+        },
+        'E002': {
+            title: 'Memory Threshold Exceeded',
+            component: 'System Memory',
+            description: 'Available memory has fallen below critical threshold. System may experience slowdowns or crashes.',
+            threshold: '3.7 GB / 4 GB',
+            resolutions: [
+                'Close unnecessary applications',
+                'Clear cache and temporary files',
+                'Check for memory leaks in running processes',
+                'Consider adding more RAM to the system'
+            ]
+        },
+        'E003': {
+            title: 'Temperature Critical',
+            component: 'Thermal Management',
+            description: 'System temperature has reached critical levels. Thermal shutdown may occur to prevent damage.',
+            threshold: '75°C',
+            resolutions: [
+                'Verify cooling system is operational',
+                'Check fan speeds and air flow',
+                'Inspect for dust buildup in cooling system',
+                'Reduce system load or ambient temperature',
+                'Consider additional cooling solutions'
+            ]
+        },
+        'E004': {
+            title: 'Communication Timeout',
+            component: 'Network Interface',
+            description: 'Communication with remote system has timed out. Data synchronization may be affected.',
+            threshold: 'N/A',
+            resolutions: [
+                'Check network cable connections',
+                'Verify network switch/router status',
+                'Test network connectivity with ping',
+                'Review firewall settings',
+                'Check remote system availability'
+            ]
+        },
+        'E005': {
+            title: 'Power Supply Error',
+            component: 'Power Supply Unit',
+            description: 'Power supply has detected an anomaly. System stability may be compromised.',
+            threshold: 'N/A',
+            resolutions: [
+                'Check power cable connections',
+                'Verify input voltage is within specification',
+                'Inspect for overheating of power supply',
+                'Test with alternate power source if available',
+                'Replace power supply if issue persists'
+            ]
+        },
+        'E006': {
+            title: 'Voltage Fault',
+            component: 'Voltage Regulator',
+            description: 'Voltage levels are outside acceptable range. Circuit protection may engage.',
+            threshold: 'N/A',
+            resolutions: [
+                'Measure actual voltage levels',
+                'Check voltage regulator operation',
+                'Inspect for loose connections',
+                'Verify input power quality',
+                'Replace faulty voltage regulation components'
+            ]
+        },
+        'E007': {
+            title: 'Current Overload',
+            component: 'Current Sensor',
+            description: 'Current draw has exceeded safe operating limits. Circuit breakers may trip.',
+            threshold: 'N/A',
+            resolutions: [
+                'Reduce connected load',
+                'Check for short circuits',
+                'Verify current sensor calibration',
+                'Inspect wiring for damage',
+                'Review load distribution'
+            ]
+        },
+        'E008': {
+            title: 'Fan Failure',
+            component: 'Cooling Fan',
+            description: 'One or more cooling fans have failed or are operating below minimum speed.',
+            threshold: 'N/A',
+            resolutions: [
+                'Check fan power connections',
+                'Verify fan is not obstructed',
+                'Test fan with alternate power source',
+                'Clean fan blades and bearings',
+                'Replace failed fan immediately'
+            ]
+        }
+    };
+
+    // State
+    let pollingInterval = null;
+    let pollingIntervalSeconds = 5;
+    let isPollingEnabled = true;
+    let lastUpdateTime = null;
+    let currentMetrics = {
+        cpu: { value: 0, status: 'ok', ecode: null },
+        memory: { value: 0, status: 'ok', ecode: null },
+        temperature: { value: 0, status: 'ok', ecode: null },
+        communication: { value: 'Online', status: 'ok', ecode: null }
+    };
+    let events = [];
+    let maxEvents = 100;
+    let activeErrorCodes = new Set();
+
+    // DOM elements cache
+    let elements = {};
+
+    /**
+     * Initialize Diagnostics Module
+     */
+    function initDiagnostics() {
+        cacheElements();
+        setupEventListeners();
+        updateMetrics();
+        startPolling();
+        updateLastUpdatedDisplay();
+        
+        // Generate some initial events
+        generateInitialEvents();
+    }
+
+    /**
+     * Cache DOM elements for performance
+     */
+    function cacheElements() {
+        elements = {
+            // Status circles
+            circleCpu: document.getElementById('status-circle-cpu'),
+            circleMemory: document.getElementById('status-circle-memory'),
+            circleTemperature: document.getElementById('status-circle-temperature'),
+            circleCommunication: document.getElementById('status-circle-communication'),
+            
+            // Circle values
+            valueCpu: document.getElementById('circle-value-cpu'),
+            valueMemory: document.getElementById('circle-value-memory'),
+            valueTemperature: document.getElementById('circle-value-temperature'),
+            valueCommunication: document.getElementById('circle-value-communication'),
+            
+            // Units
+            unitCpu: document.getElementById('circle-unit-cpu'),
+            unitMemory: document.getElementById('circle-unit-memory'),
+            unitTemperature: document.getElementById('circle-unit-temperature'),
+            unitCommunication: document.getElementById('circle-unit-communication'),
+            
+            // Controls
+            refreshBtn: document.getElementById('diagnostics-refresh-btn'),
+            autoPollingToggle: document.getElementById('auto-polling-toggle'),
+            pollingIntervalSelect: document.getElementById('polling-interval-select'),
+            lastUpdated: document.getElementById('diagnostics-last-updated'),
+            
+            // Event log
+            eventLog: document.getElementById('diagnostics-event-log'),
+            eventFilter: document.getElementById('event-severity-filter'),
+            
+            // Modal
+            modal: document.getElementById('ecode-modal'),
+            modalTitle: document.getElementById('ecode-modal-title'),
+            modalBody: document.getElementById('ecode-modal-body'),
+            modalClose: document.getElementById('ecode-modal-close'),
+            acknowledgeBtn: document.getElementById('ecode-acknowledge-btn')
+        };
+    }
+
+    /**
+     * Setup event listeners
+     */
+    function setupEventListeners() {
+        // Refresh button
+        elements.refreshBtn.addEventListener('click', handleRefreshClick);
+        
+        // Auto-polling toggle
+        elements.autoPollingToggle.addEventListener('change', handlePollingToggle);
+        
+        // Polling interval change
+        elements.pollingIntervalSelect.addEventListener('change', handleIntervalChange);
+        
+        // Event filter
+        elements.eventFilter.addEventListener('change', handleEventFilterChange);
+        
+        // Modal close
+        elements.modalClose.addEventListener('click', closeModal);
+        elements.modal.addEventListener('click', (e) => {
+            if (e.target === elements.modal) closeModal();
+        });
+        elements.acknowledgeBtn.addEventListener('click', closeModal);
+        
+        // Status circle clicks
+        document.querySelectorAll('.status-circle').forEach(circle => {
+            circle.addEventListener('click', handleCircleClick);
+        });
+        
+        // Pause polling when page not visible
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        // Clean up on route change
+        window.addEventListener('hashchange', handleRouteChange);
+    }
+
+    /**
+     * Handle refresh button click
+     */
+    function handleRefreshClick() {
+        elements.refreshBtn.classList.add('spinning');
+        updateMetrics();
+        
+        setTimeout(() => {
+            elements.refreshBtn.classList.remove('spinning');
+        }, 1000);
+    }
+
+    /**
+     * Handle polling toggle
+     */
+    function handlePollingToggle(e) {
+        isPollingEnabled = e.target.checked;
+        
+        if (isPollingEnabled) {
+            startPolling();
+            addEvent('info', 'Auto-polling enabled');
+        } else {
+            stopPolling();
+            addEvent('info', 'Auto-polling disabled');
+        }
+    }
+
+    /**
+     * Handle interval change
+     */
+    function handleIntervalChange(e) {
+        pollingIntervalSeconds = parseInt(e.target.value);
+        
+        if (isPollingEnabled) {
+            stopPolling();
+            startPolling();
+        }
+        
+        addEvent('info', `Polling interval changed to ${pollingIntervalSeconds}s`);
+    }
+
+    /**
+     * Handle event filter change
+     */
+    function handleEventFilterChange() {
+        renderEventLog();
+    }
+
+    /**
+     * Handle circle click
+     */
+    function handleCircleClick(e) {
+        const circle = e.currentTarget;
+        const metric = circle.dataset.metric;
+        const metricData = currentMetrics[metric];
+        
+        if (metricData.ecode) {
+            showEcodeModal(metricData.ecode, metricData);
+        }
+    }
+
+    /**
+     * Handle visibility change
+     */
+    function handleVisibilityChange() {
+        if (document.hidden) {
+            stopPolling();
+        } else {
+            if (isPollingEnabled) {
+                startPolling();
+                updateMetrics();
+            }
+        }
+    }
+
+    /**
+     * Handle route change
+     */
+    function handleRouteChange() {
+        // Clean up polling if leaving diagnostics page
+        const hash = window.location.hash;
+        if (!hash.includes('diagnostics')) {
+            stopPolling();
+        } else {
+            // Restart polling if coming back to diagnostics page
+            if (isPollingEnabled) {
+                startPolling();
+            }
+        }
+    }
+
+    /**
+     * Start polling
+     */
+    function startPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+        
+        pollingInterval = setInterval(() => {
+            updateMetrics();
+        }, pollingIntervalSeconds * 1000);
+    }
+
+    /**
+     * Stop polling
+     */
+    function stopPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
+        }
+    }
+
+    /**
+     * Update all metrics
+     */
+    function updateMetrics() {
+        lastUpdateTime = new Date();
+        
+        // Get module data to determine error states
+        const moduleData = window.STATCOM && window.STATCOM.getModuleData ? window.STATCOM.getModuleData() : {};
+        
+        // Count critical and warning modules
+        let criticalCount = 0;
+        let warningCount = 0;
+        
+        for (let i = 1; i <= 64; i++) {
+            const moduleId = `M${String(i).padStart(3, '0')}`;
+            const statuses = moduleData[moduleId];
+            if (statuses) {
+                const values = Object.values(statuses);
+                if (values.includes('CRITICAL')) {
+                    criticalCount++;
+                } else if (values.includes('WARNING')) {
+                    warningCount++;
+                }
+            }
+        }
+        
+        // Generate CPU metric
+        const cpuBase = 20 + (criticalCount * 10) + (warningCount * 5);
+        const cpuValue = Math.min(95, cpuBase + Math.random() * 15);
+        updateMetric('cpu', cpuValue, 80, 90, 'E001');
+        
+        // Generate Memory metric (in GB)
+        const memoryBase = 1.5 + (criticalCount * 0.3) + (warningCount * 0.15);
+        const memoryValue = parseFloat((memoryBase + Math.random() * 0.5).toFixed(2));
+        updateMetric('memory', memoryValue, 3.5, 3.7, 'E002');
+        
+        // Generate Temperature metric
+        const tempBase = 35 + (criticalCount * 8) + (warningCount * 4);
+        const tempValue = Math.round(tempBase + Math.random() * 10);
+        updateMetric('temperature', tempValue, 70, 75, 'E003');
+        
+        // Generate Communication metric
+        const commFail = Math.random() < (criticalCount * 0.05);
+        if (commFail) {
+            updateMetric('communication', 'Timeout', null, null, 'E004', true);
+        } else {
+            updateMetric('communication', 'Online', null, null, null, false);
+        }
+        
+        // Update display
+        updateCircleDisplays();
+    }
+
+    /**
+     * Update a single metric
+     */
+    function updateMetric(metric, value, warningThreshold, criticalThreshold, ecode, isCritical = false) {
+        const metricData = currentMetrics[metric];
+        const previousStatus = metricData.status;
+        
+        if (isCritical) {
+            metricData.status = 'critical';
+            metricData.ecode = ecode;
+        } else if (typeof value === 'number' && criticalThreshold && value >= criticalThreshold) {
+            metricData.status = 'critical';
+            metricData.ecode = ecode;
+        } else if (typeof value === 'number' && warningThreshold && value >= warningThreshold) {
+            metricData.status = 'warning';
+            metricData.ecode = null;
+        } else {
+            metricData.status = 'ok';
+            metricData.ecode = null;
+        }
+        
+        metricData.value = value;
+        
+        // Add event if status changed
+        if (previousStatus !== metricData.status) {
+            if (metricData.status === 'critical') {
+                activeErrorCodes.add(ecode);
+                addEvent('critical', `${ecode}: ${ECODE_DEFINITIONS[ecode].title} - ${metric.toUpperCase()}`, ecode);
+            } else if (metricData.status === 'warning') {
+                addEvent('warning', `${metric.toUpperCase()} approaching threshold (${value}${getUnit(metric)})`);
+            } else if (previousStatus === 'critical' || previousStatus === 'warning') {
+                if (metricData.ecode) {
+                    activeErrorCodes.delete(metricData.ecode);
+                }
+                addEvent('info', `${metric.toUpperCase()} returned to normal (${value}${getUnit(metric)})`);
+            }
+        }
+    }
+
+    /**
+     * Get unit for metric
+     */
+    function getUnit(metric) {
+        const units = {
+            cpu: '%',
+            memory: ' GB',
+            temperature: '°C',
+            communication: ''
+        };
+        return units[metric] || '';
+    }
+
+    /**
+     * Update circle displays
+     */
+    function updateCircleDisplays() {
+        updateCircle('cpu', currentMetrics.cpu);
+        updateCircle('memory', currentMetrics.memory);
+        updateCircle('temperature', currentMetrics.temperature);
+        updateCircle('communication', currentMetrics.communication);
+    }
+
+    /**
+     * Update a single circle
+     */
+    function updateCircle(metric, data) {
+        const circle = elements[`circle${metric.charAt(0).toUpperCase() + metric.slice(1)}`];
+        const valueEl = elements[`value${metric.charAt(0).toUpperCase() + metric.slice(1)}`];
+        const unitEl = elements[`unit${metric.charAt(0).toUpperCase() + metric.slice(1)}`];
+        
+        if (!circle || !valueEl) return;
+        
+        // Remove all status classes
+        circle.classList.remove('status-ok', 'status-warning', 'status-critical', 'status-offline');
+        
+        // Add current status class
+        circle.classList.add(`status-${data.status}`);
+        
+        // Update value
+        if (data.ecode) {
+            valueEl.innerHTML = `<span class="ecode-badge">${data.ecode}</span>`;
+            if (unitEl) unitEl.textContent = '';
+        } else {
+            if (typeof data.value === 'number') {
+                valueEl.textContent = metric === 'memory' ? data.value.toFixed(1) : Math.round(data.value);
+            } else {
+                valueEl.textContent = data.value;
+            }
+            if (unitEl) {
+                unitEl.textContent = getUnit(metric);
+            }
+        }
+    }
+
+    /**
+     * Add event to log
+     */
+    function addEvent(severity, message, ecode = null) {
+        const event = {
+            timestamp: new Date(),
+            severity: severity,
+            message: message,
+            ecode: ecode
+        };
+        
+        events.unshift(event);
+        
+        // Keep only last maxEvents
+        if (events.length > maxEvents) {
+            events = events.slice(0, maxEvents);
+        }
+        
+        renderEventLog();
+    }
+
+    /**
+     * Render event log
+     */
+    function renderEventLog() {
+        const filter = elements.eventFilter.value;
+        const filteredEvents = filter === 'all' ? events : events.filter(e => e.severity === filter);
+        
+        if (filteredEvents.length === 0) {
+            elements.eventLog.innerHTML = '<div class="no-events">No events to display</div>';
+            return;
+        }
+        
+        const html = filteredEvents.map(event => {
+            const timeStr = formatTimestamp(event.timestamp);
+            const ecodeHtml = event.ecode ? `<span class="event-ecode" data-ecode="${event.ecode}">${event.ecode}</span> ` : '';
+            
+            return `
+                <div class="event-item severity-${event.severity}">
+                    <span class="event-timestamp">${timeStr}</span>
+                    <span class="event-severity-badge ${event.severity}">${event.severity.toUpperCase()}</span>
+                    <div class="event-message-container">
+                        <span class="event-message-text">${ecodeHtml}${event.message}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        elements.eventLog.innerHTML = html;
+        
+        // Add click handlers to E-codes
+        elements.eventLog.querySelectorAll('.event-ecode').forEach(el => {
+            el.addEventListener('click', (e) => {
+                const ecode = e.target.dataset.ecode;
+                showEcodeModal(ecode);
+            });
+        });
+    }
+
+    /**
+     * Format timestamp
+     */
+    function formatTimestamp(date) {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+    /**
+     * Show E-code modal
+     */
+    function showEcodeModal(ecode, metricData = null) {
+        const definition = ECODE_DEFINITIONS[ecode];
+        
+        if (!definition) return;
+        
+        const currentValue = metricData ? metricData.value : 'N/A';
+        const threshold = definition.threshold;
+        
+        const actionsHtml = definition.resolutions.map(action => 
+            `<li>${action}</li>`
+        ).join('');
+        
+        const bodyHtml = `
+            <div class="ecode-detail-row">
+                <div class="ecode-detail-label">Error Code</div>
+                <div class="ecode-detail-value ecode-code">${ecode}</div>
+            </div>
+            <div class="ecode-detail-row">
+                <div class="ecode-detail-label">Error Title</div>
+                <div class="ecode-detail-value ecode-title">${definition.title}</div>
+            </div>
+            <div class="ecode-detail-row">
+                <div class="ecode-detail-label">Severity</div>
+                <div class="ecode-detail-value severity-critical">CRITICAL</div>
+            </div>
+            <div class="ecode-detail-row">
+                <div class="ecode-detail-label">Affected Component</div>
+                <div class="ecode-detail-value">${definition.component}</div>
+            </div>
+            <div class="ecode-detail-row">
+                <div class="ecode-detail-label">Description</div>
+                <div class="ecode-detail-value">${definition.description}</div>
+            </div>
+            <div class="ecode-detail-row">
+                <div class="ecode-detail-label">Current Value</div>
+                <div class="ecode-detail-value">${currentValue}${metricData ? getUnit(Object.keys(currentMetrics).find(k => currentMetrics[k] === metricData)) : ''}</div>
+            </div>
+            <div class="ecode-detail-row">
+                <div class="ecode-detail-label">Threshold</div>
+                <div class="ecode-detail-value">${threshold}</div>
+            </div>
+            <div class="ecode-detail-row">
+                <div class="ecode-detail-label">Suggested Actions</div>
+                <ul class="ecode-actions-list">
+                    ${actionsHtml}
+                </ul>
+            </div>
+        `;
+        
+        elements.modalTitle.textContent = `${ecode} - ${definition.title}`;
+        elements.modalBody.innerHTML = bodyHtml;
+        elements.modal.classList.add('active');
+    }
+
+    /**
+     * Close modal
+     */
+    function closeModal() {
+        elements.modal.classList.remove('active');
+    }
+
+    /**
+     * Update last updated display
+     */
+    function updateLastUpdatedDisplay() {
+        setInterval(() => {
+            if (lastUpdateTime) {
+                const secondsAgo = Math.floor((new Date() - lastUpdateTime) / 1000);
+                let text;
+                
+                if (secondsAgo < 60) {
+                    text = `Last updated: ${secondsAgo} second${secondsAgo !== 1 ? 's' : ''} ago`;
+                } else {
+                    const minutesAgo = Math.floor(secondsAgo / 60);
+                    text = `Last updated: ${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago`;
+                }
+                
+                elements.lastUpdated.textContent = text;
+            }
+        }, 1000);
+    }
+
+    /**
+     * Generate initial events
+     */
+    function generateInitialEvents() {
+        addEvent('info', 'Diagnostics system initialized');
+        addEvent('info', 'Live monitoring started');
+        
+        // Simulate some historical events
+        const now = new Date();
+        
+        events.push({
+            timestamp: new Date(now - 300000), // 5 minutes ago
+            severity: 'info',
+            message: 'System startup completed',
+            ecode: null
+        });
+        
+        events.push({
+            timestamp: new Date(now - 600000), // 10 minutes ago
+            severity: 'info',
+            message: 'Configuration loaded successfully',
+            ecode: null
+        });
+        
+        renderEventLog();
+    }
+
+    /**
+     * Initialize when DOM is ready and on diagnostics page
+     */
+    function tryInit() {
+        // Check if we're on the diagnostics page
+        const hash = window.location.hash;
+        if (!hash.includes('diagnostics')) {
+            // Wait for navigation to diagnostics
+            return;
+        }
+        
+        // Check if module data is available
+        if (!window.STATCOM || !window.STATCOM.getModuleData) {
+            setTimeout(tryInit, 100);
+            return;
+        }
+        
+        // Check if elements exist
+        if (!document.getElementById('status-circle-cpu')) {
+            setTimeout(tryInit, 100);
+            return;
+        }
+        
+        initDiagnostics();
+    }
+    
+    // Initialize
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', tryInit);
+    } else {
+        tryInit();
+    }
+    
+    // Re-initialize when navigating to diagnostics
+    window.addEventListener('hashchange', () => {
+        const hash = window.location.hash;
+        if (hash.includes('diagnostics')) {
+            // Small delay to ensure DOM is updated
+            setTimeout(tryInit, 100);
+        }
+    });
+})();
