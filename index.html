@@ -153,51 +153,95 @@
 
             <!-- Diagnostics View -->
             <div id="view-diagnostics" class="view">
-                <div class="view-header">
-                    <h2>Diagnostics</h2>
-                    <p>System diagnostics and health monitoring</p>
+                <div class="view-header diagnostics-header">
+                    <div class="header-left">
+                        <h2>Diagnostics</h2>
+                        <p>Live System Status Monitoring</p>
+                    </div>
+                    <div class="header-controls">
+                        <span class="last-updated" id="diagnostics-last-updated">Loading...</span>
+                        <button class="refresh-btn" id="diagnostics-refresh-btn" title="Refresh Now">
+                            <span class="refresh-icon">🔄</span>
+                        </button>
+                        <div class="auto-polling-control">
+                            <label class="toggle-label">
+                                <input type="checkbox" id="auto-polling-toggle" checked>
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-text">Auto</span>
+                            </label>
+                            <select id="polling-interval-select" class="interval-select">
+                                <option value="5">5s</option>
+                                <option value="10">10s</option>
+                                <option value="30">30s</option>
+                                <option value="60">60s</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div class="view-content">
-                    <div class="card">
-                        <h3>System Status</h3>
-                        <div class="status-grid">
-                            <div class="status-item">
-                                <span class="status-label">CPU Usage:</span>
-                                <span class="status-value">45%</span>
-                                <div class="status-indicator status-ok"></div>
+                    <!-- Live Status Circles -->
+                    <div class="status-circles-container">
+                        <div class="status-circle" id="status-circle-cpu" data-metric="cpu">
+                            <div class="circle-content">
+                                <div class="circle-label">CPU</div>
+                                <div class="circle-value" id="circle-value-cpu">--</div>
+                                <div class="circle-unit" id="circle-unit-cpu">%</div>
                             </div>
-                            <div class="status-item">
-                                <span class="status-label">Memory:</span>
-                                <span class="status-value">2.1 GB / 4 GB</span>
-                                <div class="status-indicator status-ok"></div>
+                        </div>
+                        <div class="status-circle" id="status-circle-memory" data-metric="memory">
+                            <div class="circle-content">
+                                <div class="circle-label">Memory</div>
+                                <div class="circle-value" id="circle-value-memory">--</div>
+                                <div class="circle-unit" id="circle-unit-memory">GB</div>
                             </div>
-                            <div class="status-item">
-                                <span class="status-label">Temperature:</span>
-                                <span class="status-value">42°C</span>
-                                <div class="status-indicator status-ok"></div>
+                        </div>
+                        <div class="status-circle" id="status-circle-temperature" data-metric="temperature">
+                            <div class="circle-content">
+                                <div class="circle-label">Temperature</div>
+                                <div class="circle-value" id="circle-value-temperature">--</div>
+                                <div class="circle-unit" id="circle-unit-temperature">°C</div>
                             </div>
-                            <div class="status-item">
-                                <span class="status-label">Communication:</span>
-                                <span class="status-value">Online</span>
-                                <div class="status-indicator status-ok"></div>
+                        </div>
+                        <div class="status-circle" id="status-circle-communication" data-metric="communication">
+                            <div class="circle-content">
+                                <div class="circle-label">Comm</div>
+                                <div class="circle-value" id="circle-value-communication">--</div>
+                                <div class="circle-unit" id="circle-unit-communication"></div>
                             </div>
                         </div>
                     </div>
-                    <div class="card">
-                        <h3>Recent Events</h3>
-                        <div class="event-log">
-                            <div class="event-item">
-                                <span class="event-time">08:25:12</span>
-                                <span class="event-message">System check completed successfully</span>
+                    
+                    <!-- Recent Events Log -->
+                    <div class="card events-card">
+                        <div class="events-header">
+                            <h3>Recent Events</h3>
+                            <div class="events-controls">
+                                <select id="event-severity-filter" class="event-filter-select">
+                                    <option value="all">All</option>
+                                    <option value="critical">Critical</option>
+                                    <option value="warning">Warning</option>
+                                    <option value="info">Info</option>
+                                </select>
                             </div>
-                            <div class="event-item">
-                                <span class="event-time">08:15:05</span>
-                                <span class="event-message">Configuration updated</span>
-                            </div>
-                            <div class="event-item">
-                                <span class="event-time">08:00:00</span>
-                                <span class="event-message">System startup</span>
-                            </div>
+                        </div>
+                        <div class="event-log" id="diagnostics-event-log">
+                            <!-- Events will be dynamically inserted here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- E-Code Detail Modal -->
+                <div class="ecode-modal" id="ecode-modal">
+                    <div class="ecode-modal-content">
+                        <div class="ecode-modal-header">
+                            <h3 id="ecode-modal-title">Error Details</h3>
+                            <button class="ecode-modal-close" id="ecode-modal-close">&times;</button>
+                        </div>
+                        <div class="ecode-modal-body" id="ecode-modal-body">
+                            <!-- Content will be dynamically inserted -->
+                        </div>
+                        <div class="ecode-modal-footer">
+                            <button class="btn-acknowledge" id="ecode-acknowledge-btn">Acknowledge</button>
                         </div>
                     </div>
                 </div>
