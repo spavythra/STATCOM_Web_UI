@@ -2564,6 +2564,15 @@
         const currentValue = metricData ? metricData.value : 'N/A';
         const threshold = definition.threshold;
         
+        // Extract unit for current value
+        let unit = '';
+        if (metricData) {
+            const metricName = Object.keys(currentMetrics).find(k => currentMetrics[k] === metricData);
+            if (metricName) {
+                unit = getUnit(metricName);
+            }
+        }
+        
         const actionsHtml = definition.resolutions.map(action => 
             `<li>${action}</li>`
         ).join('');
@@ -2591,7 +2600,7 @@
             </div>
             <div class="ecode-detail-row">
                 <div class="ecode-detail-label">Current Value</div>
-                <div class="ecode-detail-value">${currentValue}${metricData ? getUnit(Object.keys(currentMetrics).find(k => currentMetrics[k] === metricData)) : ''}</div>
+                <div class="ecode-detail-value">${currentValue}${unit}</div>
             </div>
             <div class="ecode-detail-row">
                 <div class="ecode-detail-label">Threshold</div>
@@ -2669,26 +2678,39 @@
      * Initialize when DOM is ready and on diagnostics page
      */
     function tryInit() {
-        // Check if we're on the diagnostics page
-        const hash = window.location.hash;
-        if (!hash.includes('diagnostics')) {
-            // Wait for navigation to diagnostics
-            return;
+        const MAX_RETRIES = 50; // Max 5 seconds at 100ms intervals
+        let retryCount = 0;
+        
+        function attemptInit() {
+            retryCount++;
+            
+            // Check if we're on the diagnostics page
+            const hash = window.location.hash;
+            if (!hash.includes('diagnostics')) {
+                // Wait for navigation to diagnostics
+                return;
+            }
+            
+            // Check if module data is available
+            if (!window.STATCOM || !window.STATCOM.getModuleData) {
+                if (retryCount < MAX_RETRIES) {
+                    setTimeout(attemptInit, 100);
+                }
+                return;
+            }
+            
+            // Check if elements exist
+            if (!document.getElementById('status-circle-cpu')) {
+                if (retryCount < MAX_RETRIES) {
+                    setTimeout(attemptInit, 100);
+                }
+                return;
+            }
+            
+            initDiagnostics();
         }
         
-        // Check if module data is available
-        if (!window.STATCOM || !window.STATCOM.getModuleData) {
-            setTimeout(tryInit, 100);
-            return;
-        }
-        
-        // Check if elements exist
-        if (!document.getElementById('status-circle-cpu')) {
-            setTimeout(tryInit, 100);
-            return;
-        }
-        
-        initDiagnostics();
+        attemptInit();
     }
     
     // Initialize
