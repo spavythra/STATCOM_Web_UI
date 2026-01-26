@@ -2749,6 +2749,11 @@
 (function() {
     'use strict';
 
+    // Constants
+    const MAX_BADGE_COUNT = 99;
+    const REFRESH_ANIMATION_DURATION = 1000; // milliseconds
+    const CONNECTION_CHECK_INTERVAL = 30000; // 30 seconds
+
     // State
     let connectionCheckInterval = null;
 
@@ -2821,7 +2826,7 @@
         }
 
         if (count > 0) {
-            alarmBadge.textContent = count > 99 ? '99+' : count;
+            alarmBadge.textContent = count > MAX_BADGE_COUNT ? MAX_BADGE_COUNT + '+' : count;
             alarmBadge.style.display = 'inline-block';
         } else {
             alarmBadge.style.display = 'none';
@@ -2845,21 +2850,34 @@
         // Perform connection check
         checkConnection();
         
-        // Remove spinning animation after 1 second
+        // Remove spinning animation after duration
         setTimeout(() => {
             refreshBtn.classList.remove('spinning');
-        }, 1000);
+        }, REFRESH_ANIMATION_DURATION);
+    }
+
+    /**
+     * Cleanup function to clear intervals
+     */
+    function cleanup() {
+        if (connectionCheckInterval) {
+            clearInterval(connectionCheckInterval);
+            connectionCheckInterval = null;
+        }
     }
 
     /**
      * Initialize connection status manager
      */
     function init() {
+        // Clear any existing interval
+        cleanup();
+
         // Initial connection check
         checkConnection();
         
-        // Set up periodic connection checks (every 30 seconds)
-        connectionCheckInterval = setInterval(checkConnection, 30000);
+        // Set up periodic connection checks
+        connectionCheckInterval = setInterval(checkConnection, CONNECTION_CHECK_INTERVAL);
         
         // Set up refresh button handler
         const refreshBtn = document.getElementById('sidebar-refresh-btn');

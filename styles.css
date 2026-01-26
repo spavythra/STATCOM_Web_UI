@@ -266,7 +266,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     align-self: flex-end;
-    margin-top: -36px;
+    margin-top: calc(-32px - 4px); /* Negative button height minus small gap */
     margin-right: 0;
 }
 
