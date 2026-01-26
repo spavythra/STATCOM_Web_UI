@@ -12,7 +12,8 @@
         '/module-overview': 'view-module-overview',
         '/diagnostics': 'view-diagnostics',
         '/trends': 'view-trends',
-        '/alarms': 'view-alarms'
+        '/alarms': 'view-alarms',
+        '/rag-chat': 'view-rag-chat'
     };
 
     const defaultRoute = '/config';
@@ -2739,4 +2740,146 @@
             setTimeout(tryInit, 100);
         }
     });
+})();
+
+/**
+ * Connection Status Manager
+ * Manages sidebar footer connection status and alarm badge
+ */
+(function() {
+    'use strict';
+
+    // State
+    let connectionCheckInterval = null;
+
+    /**
+     * Update connection status in sidebar footer
+     * @param {string} status - 'connected', 'connecting', or 'disconnected'
+     * @param {string} target - Connection target (IP or hostname)
+     */
+    function updateConnectionStatus(status, target) {
+        const statusDot = document.getElementById('sidebar-status-dot');
+        const statusLabel = document.getElementById('sidebar-status-label');
+        
+        if (!statusDot || !statusLabel) {
+            return;
+        }
+
+        // Update status dot
+        statusDot.className = 'status-dot ' + status;
+
+        // Update status label
+        let labelText = '';
+        switch (status) {
+            case 'connected':
+                labelText = 'Connected: ' + target;
+                break;
+            case 'connecting':
+                labelText = 'Connecting...';
+                break;
+            case 'disconnected':
+                labelText = 'Disconnected';
+                break;
+            default:
+                labelText = 'Unknown';
+        }
+        
+        statusLabel.textContent = labelText;
+    }
+
+    /**
+     * Check connection status (polls backend)
+     * This is a placeholder - would normally make an API call
+     */
+    async function checkConnection() {
+        try {
+            // Placeholder: In production, this would poll a backend endpoint
+            // For now, we'll check if we're connected based on localStorage
+            const ipAddress = localStorage.getItem('statcom_ip') || 'localhost';
+            const isConnected = localStorage.getItem('statcom_connected') === 'true';
+            
+            if (isConnected) {
+                updateConnectionStatus('connected', ipAddress);
+            } else {
+                updateConnectionStatus('disconnected', 'localhost');
+            }
+        } catch (error) {
+            console.error('Failed to check connection:', error);
+            updateConnectionStatus('disconnected', 'localhost');
+        }
+    }
+
+    /**
+     * Update alarm badge count
+     * @param {number} count - Number of active alarms
+     */
+    function updateAlarmBadge(count) {
+        const alarmBadge = document.getElementById('alarm-badge');
+        
+        if (!alarmBadge) {
+            return;
+        }
+
+        if (count > 0) {
+            alarmBadge.textContent = count > 99 ? '99+' : count;
+            alarmBadge.style.display = 'inline-block';
+        } else {
+            alarmBadge.style.display = 'none';
+        }
+    }
+
+    /**
+     * Handle refresh button click
+     */
+    function handleRefreshClick() {
+        const refreshBtn = document.getElementById('sidebar-refresh-btn');
+        const refreshIcon = refreshBtn?.querySelector('.refresh-icon');
+        
+        if (!refreshBtn) {
+            return;
+        }
+
+        // Add spinning animation
+        refreshBtn.classList.add('spinning');
+        
+        // Perform connection check
+        checkConnection();
+        
+        // Remove spinning animation after 1 second
+        setTimeout(() => {
+            refreshBtn.classList.remove('spinning');
+        }, 1000);
+    }
+
+    /**
+     * Initialize connection status manager
+     */
+    function init() {
+        // Initial connection check
+        checkConnection();
+        
+        // Set up periodic connection checks (every 30 seconds)
+        connectionCheckInterval = setInterval(checkConnection, 30000);
+        
+        // Set up refresh button handler
+        const refreshBtn = document.getElementById('sidebar-refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', handleRefreshClick);
+        }
+        
+        // Initial alarm badge (check if there are active alarms)
+        // This would normally come from backend data
+        updateAlarmBadge(0);
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    // Expose functions globally for external use
+    window.updateConnectionStatus = updateConnectionStatus;
+    window.updateAlarmBadge = updateAlarmBadge;
 })();
