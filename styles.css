@@ -178,12 +178,12 @@ body {
 }
 
 @keyframes badgePulse {
-    0%, 100% { 
-        transform: scale(1); 
+    0%, 100% {
+        transform: scale(1);
         box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
     }
-    50% { 
-        transform: scale(1.05); 
+    50% {
+        transform: scale(1.05);
         box-shadow: 0 0 0 4px rgba(46, 204, 113, 0);
     }
 }
@@ -229,11 +229,11 @@ body {
 }
 
 @keyframes statusPulse {
-    0%, 100% { 
+    0%, 100% {
         opacity: 1;
         transform: scale(1);
     }
-    50% { 
+    50% {
         opacity: 0.7;
         transform: scale(1.1);
     }
@@ -324,11 +324,11 @@ body {
         padding: 20px 10px;
         text-align: center;
     }
-    
+
     .logo-container {
         margin-bottom: 0;
     }
-    
+
     .logo-icon {
         width: 32px;
         height: 32px;
@@ -363,7 +363,7 @@ body {
         width: 0;
         overflow: hidden;
     }
-    
+
     .badge {
         position: absolute;
         top: 8px;
@@ -372,22 +372,22 @@ body {
         padding: 2px 5px;
         font-size: 9px;
     }
-    
+
     .sidebar-footer {
         padding: 12px 8px;
     }
-    
+
     .status-label {
         opacity: 0;
         width: 0;
         overflow: hidden;
     }
-    
+
     .refresh-btn {
         margin-top: 8px;
         align-self: center;
     }
-    
+
     .app-version {
         font-size: 9px;
     }
@@ -411,12 +411,12 @@ body {
         width: 20px;
         height: 20px;
     }
-    
+
     .logo-icon {
         width: 28px;
         height: 28px;
     }
-    
+
     .badge {
         right: 8px;
     }
@@ -695,8 +695,11 @@ body {
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-    .view-content {
+    /* .view-content {
         grid-template-columns: 1fr;
+    } */
+    .main-content {
+        margin-left: 60px;
     }
 }
 
@@ -2715,31 +2718,31 @@ body {
     .chat-container {
         height: calc(100vh - 160px);
     }
-    
+
     .chat-messages {
         padding: 16px;
         gap: 16px;
     }
-    
+
     .message-content {
         max-width: 85%;
         padding: 12px 14px;
     }
-    
+
     .message-avatar {
         width: 32px;
         height: 32px;
         font-size: 16px;
     }
-    
+
     .chat-input-container {
         padding: 16px;
     }
-    
+
     .chat-input {
         font-size: 13px;
     }
-    
+
     .chat-send-btn {
         width: 44px;
         height: 44px;
