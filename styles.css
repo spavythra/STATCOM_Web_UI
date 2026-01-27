@@ -49,6 +49,7 @@ body {
     letter-spacing: 1.5px;
     text-transform: uppercase;
     transition: opacity 0.3s ease;
+    text-align: center;
 }
 
 .sidebar-header p {
