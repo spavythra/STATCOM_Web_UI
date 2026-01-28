@@ -1255,9 +1255,31 @@ body {
 }
 
 /* Responsive Trends */
-@media (max-width: 1400px) {
+/* @media (max-width: 1400px) {
     .trends-charts-container {
         grid-template-columns: 1fr;
+    }
+} */
+
+/* Tablet - Landscape (1024px and below) */
+@media (max-width: 1024px) {
+    .charts-grid {
+        /* 2 columns still on tablet landscape */
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .chart-container {
+        height: 280px;
+    }
+
+    .trends-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .control-group {
+        min-width: 100%;
     }
 }
 
