@@ -1313,6 +1313,40 @@ body {
     }
 }
 
+/* Mobile (480px and below) */
+@media (max-width: 480px) {
+    .trends-controls-card {
+        padding: 16px;
+    }
+
+    .chart-card {
+        padding: 12px;
+    }
+
+    .chart-container {
+        height: 220px;
+        min-height: 200px;
+    }
+
+    .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .chart-unit {
+        align-self: flex-start;
+    }
+
+    .control-group {
+        gap: 6px;
+    }
+
+    .control-group label {
+        font-size: 12px;
+    }
+}
+
 /* ============================================================================ */
 /* ALARMS PAGE STYLES */
 /* ============================================================================ */
