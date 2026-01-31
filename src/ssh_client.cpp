@@ -108,3 +108,26 @@ std::string SSHClient::downloadFile(const std::string& remotePath) {
 
     return content;
 }
+
+void SSHClient::disconnect() {
+    std::cout << "🔌 [ssh_client.cpp] disconnect() called\n";
+
+    if (sftpSession_) {
+        libssh2_sftp_shutdown(sftpSession_);
+        sftpSession_ = nullptr;
+    }
+
+    if (sshSession_) {
+        libssh2_session_disconnect(sshSession_, "Normal shutdown");
+        libssh2_session_free(sshSession_);
+        sshSession_ = nullptr;
+    }
+
+    if (sock_ >= 0) {
+        close(sock_);
+        sock_ = -1;
+    }
+
+    connected_ = false;
+    std::cout << "✅ [ssh_client.cpp] Disconnected\n";
+}
