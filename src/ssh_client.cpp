@@ -60,7 +60,7 @@ std::string SSHClient::downloadFile(const std::string& remotePath) {
     // STEP 1: Open SFTP session (file transfer over SSH)
     LIBSSH2_SFTP* sftpSession = libssh2_sftp_init(sshSession_);
     if (!sftpSession) {
-        std::cerr << "❌ Failed to init SFTP\n";
+        std::cerr << "Failed to init SFTP\n";
         return "";
     }
 
@@ -72,7 +72,7 @@ std::string SSHClient::downloadFile(const std::string& remotePath) {
                           0);
 
     if (!sftpHandle) {
-        std::cerr << "❌ Failed to open file: " << remotePath << "\n";
+        std::cerr << "Failed to open file: " << remotePath << "\n";
         libssh2_sftp_shutdown(sftpSession);
         return "";
     }
@@ -86,7 +86,7 @@ std::string SSHClient::downloadFile(const std::string& remotePath) {
         int bytesRead = libssh2_sftp_read(sftpHandle, buffer, sizeof(buffer));
 
         if (bytesRead < 0) {
-            std::cerr << "❌ Error reading file\n";
+            std::cerr << "Error reading file\n";
             break;
         }
 
@@ -110,7 +110,7 @@ std::string SSHClient::downloadFile(const std::string& remotePath) {
 }
 
 void SSHClient::disconnect() {
-    std::cout << "🔌 [ssh_client.cpp] disconnect() called\n";
+    std::cout << "[ssh_client.cpp] disconnect() called\n";
 
     if (sftpSession_) {
         libssh2_sftp_shutdown(sftpSession_);
