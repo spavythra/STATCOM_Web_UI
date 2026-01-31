@@ -131,3 +131,10 @@ void SSHClient::disconnect() {
     connected_ = false;
     std::cout << "✅ [ssh_client.cpp] Disconnected\n";
 }
+bool SSHClient::isConnected() const {
+    return connected_;
+}
+
+std::string SSHClient::getLastError() const {
+    return lastError_;
+}
