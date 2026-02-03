@@ -47,7 +47,7 @@ bool SSHClient::connect() {
     if (libssh2_userauth_password(sshSession_,
                                    username_.c_str(),
                                    password_.c_str()) != 0) {
-        std::cerr << "❌ Authentication failed\n";
+        std::cerr << "Authentication failed\n";
         return false;
     }
 
