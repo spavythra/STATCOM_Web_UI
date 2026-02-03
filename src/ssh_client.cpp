@@ -15,7 +15,7 @@ bool SSHClient::connect() {
     // STEP 2: Create a new SSH session
     sshSession_ = libssh2_session_init();
     if (!sshSession_) {
-        std::cerr << "❌ Failed to create SSH session\n";
+        std::cerr << "Failed to create SSH session\n";
         return false;
     }
 
@@ -29,11 +29,11 @@ bool SSHClient::connect() {
 
     // Connect socket to VxWorks
     if (connect(sock, (struct sockaddr*)(&sin), sizeof(sin)) != 0) {
-        std::cerr << "❌ Failed to connect to " << host_ << ":" << port_ << "\n";
+        std::cerr << "Failed to connect to " << host_ << ":" << port_ << "\n";
         return false;
     }
 
-    std::cout << "✅ Connected to " << host_ << ":" << port_ << "\n";
+    std::cout << "Connected to " << host_ << ":" << port_ << "\n";
 
     // STEP 4: Start SSH handshake
     if (libssh2_session_handshake(sshSession_, sock) != 0) {
