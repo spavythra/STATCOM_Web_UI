@@ -51,7 +51,7 @@ bool SSHClient::connect() {
         return false;
     }
 
-    std::cout << "✅ Authenticated as " << username_ << "\n";
+    std::cout << "Authenticated as " << username_ << "\n";
 
     return true;
 }
