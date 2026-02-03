@@ -37,7 +37,7 @@ bool SSHClient::connect() {
 
     // STEP 4: Start SSH handshake
     if (libssh2_session_handshake(sshSession_, sock) != 0) {
-        std::cerr << "❌ SSH handshake failed\n";
+        std::cerr << "SSH handshake failed\n";
         return false;
     }
 
